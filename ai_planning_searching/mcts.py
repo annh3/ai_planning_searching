@@ -22,11 +22,14 @@ class Node:
 
 
 def select(root:Node) -> Node:
+	path_nodes = []
+	path_nodes.append(root)
 	while len(root.children) > 0:
 		UCB_values = [P_UCB_s_a[child.str] for child in root.children]
 		arg_max, max_UCB = max(list(enumerate(UCB_values)), key=lambda x: x) 
 		root = root.children[arg_max]
-	return root
+		path_nodes.append(root)
+	return root, path_nodes
 
 
 def expand(root:Node, model, k, max_beam_len):
@@ -53,6 +56,22 @@ def expand(root:Node, model, k, max_beam_len):
     		new_list.extend([current_path + beam for beam in beams])
     	beam_list = new_list
     return beam_list # should be list of k^(max_beam_len) full paths
+
+
+def evaluate_full_paths(beam_list: list[str], model, eval_prompt): # consider using a different reward model
+	scores = [model.score(beam) for beam in beam_list]
+	# suggested in https://openreview.net/pdf?id=Lr8cOOtYbfL to use max(score)
+	return max(score)
+
+
+def backpropagate_statistics(path_nodes, max_rollout_reward):
+	# 1. add 1 to all state visit counts
+	# 2. recalculate P_UCB_s_a recursively (backwards)
+	# 3. update Q_s_a with max_rollout_reward
+	# 4. update value of the node??
+	pass
+
+
 
 
 
