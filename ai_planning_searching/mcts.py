@@ -55,9 +55,22 @@ def expand(root:Node, model, k, max_beam_len):
     		num_beams=k,
     		early_stopping=True)
 
-    		# todo(annhe): Add scores to node.P_s_a
+    		"""
+    		tokenizer = AutoTokenizer.from_pretrained("t5-base")
+    		model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
+    		outputs = model.generate(input_ids, num_beams=10, num_return_sequences=10,
+    		no_repeat_ngram_size=1,remove_invalid_values=True,)
+
+    		input_ids = tokenizer(encoder_input_str, return_tensors="pt").input_ids
+    		encoder_input_str = "hello world: "
+    		"""
+
+    		# todo(annhe): Add scores of beams to node.P_s_a
     		# https://discuss.huggingface.co/t/how-to-get-sequences-scores-from-scores-in-generate-method/6048
     		# print(beam_output['scores'][0].size())
+
+
+    		
 
     		beams = [tokenizer.decode(beam_k, skip_special_tokens=True) for beam_k in beam_output]
     		new_list.extend([current_path + beam for beam in beams])
