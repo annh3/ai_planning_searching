@@ -4,11 +4,14 @@ import collections
 import json
 from transformers import pipeline, set_seed
 
+tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
+lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
+
 class Node:
 	token: str # we assume that the token is the concatenation of all generated on this path
-	value: float
 	Q_s_a: dict[str,float]
 	P_UCB_s_a: dict[str, float]
+	P_s_a : torch.Tensor # keep the logits
 	visits: int
 	children: list[Node]
 
@@ -52,6 +55,10 @@ def expand(root:Node, model, k, max_beam_len):
     		num_beams=k,
     		early_stopping=True)
 
+    		# todo(annhe): Add scores to node.P_s_a
+    		# https://discuss.huggingface.co/t/how-to-get-sequences-scores-from-scores-in-generate-method/6048
+    		# print(beam_output['scores'][0].size())
+
     		beams = [tokenizer.decode(beam_k, skip_special_tokens=True) for beam_k in beam_output]
     		new_list.extend([current_path + beam for beam in beams])
     	beam_list = new_list
@@ -64,11 +71,27 @@ def evaluate_full_paths(beam_list: list[str], model, eval_prompt): # consider us
 	return max(score)
 
 
-def backpropagate_statistics(path_nodes, max_rollout_reward):
+def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c):
 	# 1. add 1 to all state visit counts
 	# 2. recalculate P_UCB_s_a recursively (backwards)
 	# 3. update Q_s_a with max_rollout_reward
-	# 4. update value of the node??
+	# According to the paper, this is
+	# Q(s'',a'') <-- max(Q(s'',a''),r)
+	# P(a|s) given by last log softmax in the return value
+	
+	# We need to update path_nodes in reverse order
+	for node in reversed(path_nodes):
+		node.visits += 1
+		# Q(s'',a'') <-- max(Q(s'',a''),r)
+		new_q_s_a = {k: max(v, max_rollout_reward) for k,v in node.Q_s_a.items()}
+		# Recalculated P_UCB_s_a
+		beta = math.log((node.visits + c_base + 1) / c_base) + c
+
+
+
+
+
+
 	pass
 
 
