@@ -8,6 +8,8 @@ tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
 lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
 
 class Node:
+	# todo(annhe): refactor this so that the node is just a single token
+	current_token: torch.Tensor
 	tokens: torch.Tensor # we assume that the token is the concatenation of all generated on this path
 	string: str
 	Q_s_a: dict[str,float]
@@ -41,7 +43,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 	Note that we can do a more fine-grained exploration of expand by interpolating
 	between the expansion and the roll-out, both of which are done with top-k decoding / beam search.
 	"""
-	# get top k
+	# get top k - one of these will become the best action, and we will need to keep track of that token
 	beam_output = model.generate(
     root.tokens,
     max_new_tokens=1,
@@ -57,6 +59,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     root.P_s_a = beam_output.sequences_scores # size 
 
     # you have to do some chunking here
+    # ???
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
     beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     beam_list = [(s,b) for s,b in zip(scores,beams)]
@@ -89,6 +92,8 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
 	# suggested in https://openreview.net/pdf?id=Lr8cOOtYbfL to use max(score)
 	res = sorted(beam_list,key=lambda x: x[1], reverse=True)[0]
 	return res
+	# todo, instead of likelihood, the reward should be from unit tests
+	# todo, also return the current_token
 
 
 
@@ -116,4 +121,29 @@ def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c):
 		for i, (k, v) in enumerate(new_q_s_a.items()):
     		print(i, k, v)
     		node.P_UCB_s_a[k] = v + beta * node.P_s_a[i] * math.sqrt(torch.log(node.visits)) / (1 + s_prime_visits)
+
+
+def main_algorithm(prompt, max_rollouts) -> str:
+	program_dictionary = dict() # to store fully generated programs
+	# program_ditionary[program] = rollout_reward
+	root_node = Node(prompt)
+
+	for _ in max_rollouts:
+		root_vo, path_nodes = select(node)
+		beams_list = expand(root_vo)
+		max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
+		program_dictionary[top_program] = max_rollout_reward
+		root_vo.children.append(Node(top_action,...)) # todo
+		backpropagate_statistics(path_nodes, reward,...) #todo
+
+	v = list(program_dictionary.values())
+	k = list(program_dictionary.keys())
+	return k[v.index(max(v))] # return the program with the max rollout reward
+
+
+
+
+
+
+
 
