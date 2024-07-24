@@ -10,17 +10,17 @@ lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
 class Node:
 	# todo(annhe): refactor this so that the node is just a single token
 	current_token: torch.Tensor
-	tokens: torch.Tensor # we assume that the token is the concatenation of all generated on this path
-	string: str
-	Q_s_a: dict[str,float]
-	P_UCB_s_a: dict[str, float]
-	P_s_a : torch.Tensor # keep the logits
+	sequence_tokens: torch.Tensor # we assume that the token is the concatenation of all generated on this path
+	string: str # string representation of current token
+	sequence_string: str # string representation of current sequence
+	Q_s_a: dict[str,float] # Q values of the node's children
+	P_UCB_s_a: dict[str, float] # P-UCB values of the node's children
+	P_s_a : torch.Tensor # keep the logits of the node's children
 	visits: int
 	children: list[Node]
 
-	def __init__(self, token=token, value=0, visits=0):
-		self.token = token
-		self.value = value
+	def __init__(self, current_token='', value=0, visits=0):
+		self.current_token = token
 		self.visits = visits
 		self.Q_s_a = {}
 		self.P_UCB_s_a = {}
@@ -132,6 +132,9 @@ def main_algorithm(prompt, max_rollouts) -> str:
 		root_vo, path_nodes = select(node)
 		beams_list = expand(root_vo)
 		max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
+		### TODO ###
+		# create a new node with top_action
+		############
 		program_dictionary[top_program] = max_rollout_reward
 		root_vo.children.append(Node(top_action,...)) # todo
 		backpropagate_statistics(path_nodes, reward,...) #todo
