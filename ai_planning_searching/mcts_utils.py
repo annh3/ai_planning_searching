@@ -79,6 +79,8 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 
     # you have to do some chunking here
    	# Note: these are the candidates for v_n
+
+   	# you'll have to add the same decoding code here
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
     beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     beam_list = [(s,b) for s,b in zip(scores,beams)]
