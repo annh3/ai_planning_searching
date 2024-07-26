@@ -119,6 +119,9 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     		next_tokens = torch.log_softmax(beam_output.logits, dim=1)
     		next_tokens = torch.argmax(next_tokens,dim=1)
 
+    		# string representation
+    		# repr = tokenizer.decode(token_idx_max)
+
     		current_beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     		scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
     		current_beam_list = [(s,b) for s,b in zip(scores,current_beams)]
