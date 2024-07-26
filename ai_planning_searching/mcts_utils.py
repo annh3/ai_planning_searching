@@ -56,6 +56,24 @@ def select(root:Node) -> Node:
 	return root, path_nodes
 
 
+def logits_to_token_strings(logits):
+	"""
+	Helper function, computes tokens and str representations given logit representation
+
+	Args:
+		logits: (batch_size, vocab_size)
+	Returns:
+		tokens: list[Torch.tensor] of tokens of length batch_size
+		str: a list of length batch_size
+	"""
+	k = logits.shape[0]
+	next_tokens = torch.log_softmax(beam_output.logits[0], dim=1)
+    next_tokens = torch.argmax(next_tokens, dim=1)
+    str_repr = tokenizer.batch_decode(next_tokens)
+    next_tokens = list(torch.chunk(next_tokens,chunks=k,dim=0))
+    return next_tokens, str_repr
+
+
 def expand(root:Node, tokenizer, model, k, max_beam_len):
 	"""
 	Note that we can do a more fine-grained exploration of expand by interpolating
@@ -77,8 +95,8 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     # in the sequence, i.e. log p(y1y2...yk), which decomposes sum-wise
     root.P_s_a = beam_output.sequences_scores # size 
 
-    # you have to do some chunking here
    	# Note: these are the candidates for v_n
+   	next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
 
    	# you'll have to add the same decoding code here
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
@@ -103,30 +121,15 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     		num_beams=k,
     		num_return_sequences=k,
     		return_dict_in_generate=True,
+    		output_logits=True,
     		output_scores=True,
     		early_stopping=True)
-    		# logits
-    		# is of size (batch_size, config.vocab_size)
-    		# Q: how to go from logits to tokens or strings?
-    		# probably better to go to tokens as you don't have to encode and decode
-    		# in the middle of the algorithm
-    		# we can convert to a distribution and take the argmax to get the token
-    		# then use some sort of decoder
 
-    		# next_tokens will be of shape (batch_size, 1) if these steps are done
-    		# correctly
-    		# consider refactoring this into a helper function since this will be
-    		# repeated code for hugging face
-    		# you can unit test this in a notebook first
-    		next_tokens = torch.log_softmax(beam_output.logits, dim=1)
-    		next_tokens = torch.argmax(next_tokens,dim=1)
-
-    		# string representation
-    		# repr = tokenizer.decode(token_idx_max)
+    		next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
 
     		current_beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     		scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
-    		current_beam_list = [(s,b) for s,b in zip(scores,current_beams)]
+    		current_beam_list = [(s,b) for s,b in zip(scores,current_beams,str_repr,next_tokens)]
 
     		new_list.extend(current_beam_list)
 
@@ -167,9 +170,9 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
 		top_program: the entire sequence representing the full program
 	"""
 	res = sorted(beam_list,key=lambda x: x[1], reverse=True)[0]
-	return res
-	# todo, instead of likelihood, the reward should be from unit tests
-	# todo, also return the current_token
+	# scores,current_beams,str_repr,next_tokens
+	program = [' '.join([r[2] for r in res])]
+	return res[0], res[2], program
 
 
 
@@ -209,7 +212,8 @@ def main_algorithm(prompt, max_rollouts) -> str:
 		beams_list = expand(root_vo)
 		max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
 		### TODO ###
-		# create a new node with top_action
+		# create a new node with top_action in the MCTS tree
+		# i.e. will need to traverse the tree
 		############
 		program_dictionary[top_program] = max_rollout_reward
 		root_vo.children.append(Node(top_action,...)) # todo
