@@ -28,13 +28,31 @@ class Node:
 
 
 def select(root:Node) -> Node:
+	"""
+	Given the root node v_o of the MCTS tree,
+	using P-UCB as a criterion, recursively
+	traverse the tree to find a node that has not been
+	previously expanded (a node without children nodes).
+
+
+	Args: root, the root node of the MCTS tree
+	Returns: 
+		root: the newly added node to the tree, v_n
+		path_nodes: the list of node.str in the tree which were traversed, starting
+		from the root node v_o, i.e. [v_o.str, v_1.str,...,v_n.str]
+
+	(todo): I'm thinking that instead of the node, which is copied,
+	we should return node.str, which allows us to traverse the path of the 
+	real MCTS tree's data structure in backpropagate_statistics, since Q_s_a 
+	is indexed by string
+	"""
 	path_nodes = []
-	path_nodes.append(root)
+	path_nodes.append(root.str) # name of the current node
 	while len(root.children) > 0:
 		UCB_values = [P_UCB_s_a[child.str] for child in root.children]
 		arg_max, max_UCB = max(list(enumerate(UCB_values)), key=lambda x: x) 
 		root = root.children[arg_max]
-		path_nodes.append(root)
+		path_nodes.append(root.str)
 	return root, path_nodes
 
 
@@ -54,12 +72,13 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     early_stopping=True)
 
     # todo(annhe): Add scores of beams to node.P_s_a
-    # https://discuss.huggingface.co/t/how-to-get-sequences-scores-from-scores-in-generate-method/6048
-    # print(beam_output['scores'][0].size())
+    # https://discuss.huggingface.co/t/announcement-generation-get-probabilities-for-generated-output/30075/14
+    # sequences_scores are the sum of the log probabilities of the generated tokens
+    # in the sequence, i.e. log p(y1y2...yk), which decomposes sum-wise
     root.P_s_a = beam_output.sequences_scores # size 
 
     # you have to do some chunking here
-    # ???
+   	# Note: these are the candidates for v_n
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
     beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     beam_list = [(s,b) for s,b in zip(scores,beams)]
@@ -67,6 +86,15 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     for _ in range(max_beam_len-1):
     	new_list = []
     	for current_path in beam_list:
+    		"""
+    		https://huggingface.co/docs/transformers/v4.43.3/en/main_classes/text_generation#transformers.GenerationMixin.generate
+
+    		Q: what is the output of model.generate?
+    		
+    		It returns ModelOutput, i.e. GenerateBeamEncoderDecoderOutput
+    		https://huggingface.co/docs/transformers/v4.43.3/en/internal/generation_utils#transformers.generation.GenerateBeamDecoderOnlyOutput
+
+    		"""
     		beam_output = model.generate(
     		current_path,
     		max_new_tokens=1,
@@ -75,6 +103,22 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     		return_dict_in_generate=True,
     		output_scores=True,
     		early_stopping=True)
+    		# logits
+    		# is of size (batch_size, config.vocab_size)
+    		# Q: how to go from logits to tokens or strings?
+    		# probably better to go to tokens as you don't have to encode and decode
+    		# in the middle of the algorithm
+    		# we can convert to a distribution and take the argmax to get the token
+    		# then use some sort of decoder
+
+    		# next_tokens will be of shape (batch_size, 1) if these steps are done
+    		# correctly
+    		# consider refactoring this into a helper function since this will be
+    		# repeated code for hugging face
+    		# you can unit test this in a notebook first
+    		next_tokens = torch.log_softmax(beam_output.logits, dim=1)
+    		next_tokens = torch.argmax(next_tokens,dim=1)
+
     		current_beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     		scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
     		current_beam_list = [(s,b) for s,b in zip(scores,current_beams)]
@@ -86,10 +130,37 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     return beam_list 
 
 
+"""
+I notice here that we return the full program.
+We need to find the right truncation 
+
+by convention of how the function is written, 
+this is simply the first "node" in a "beam_list",
+call it v_n, like in the diagram
+
+But we also need all of the nodes on the path 
+from the real root of the MCTS tree, v_o, which
+contains the original prompt that was the input
+when the MCTS algorithm was called
+
+
+
+"""
+
 def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]): 
 	# returns full decoded path and its score
 	# consider using a different reward model
 	# suggested in https://openreview.net/pdf?id=Lr8cOOtYbfL to use max(score)
+
+	"""
+	Args:
+		beams_list: list of candidate beams
+
+	Returns:
+		max_rollout_reward: the reward from the full sequence
+		top_action: top next action as a string, i.e. v_n.str
+		top_program: the entire sequence representing the full program
+	"""
 	res = sorted(beam_list,key=lambda x: x[1], reverse=True)[0]
 	return res
 	# todo, instead of likelihood, the reward should be from unit tests
@@ -97,7 +168,7 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
 
 
 
-def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c):
+def backpropagate_statistics_V1(path_nodes, max_rollout_reward, c_base, c):
 	# 1. add 1 to all state visit counts
 	# 2. recalculate P_UCB_s_a recursively (backwards)
 	# 3. update Q_s_a with max_rollout_reward
