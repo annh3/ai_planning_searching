@@ -7,6 +7,11 @@ from transformers import pipeline, set_seed
 tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
 lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
 
+"""
+TODO7(annhe):
+
+This should be refactored / cleaned up.
+"""
 class Node:
 	# todo(annhe): refactor this so that the node is just a single token
 	current_token: torch.Tensor
@@ -26,7 +31,9 @@ class Node:
 		self.P_UCB_s_a = {}
 		self.children = []
 
-
+"""
+TODO5(annhe): This should be unit tested.
+"""
 def select(root:Node) -> Node:
 	"""
 	Given the root node v_o of the MCTS tree,
@@ -55,7 +62,12 @@ def select(root:Node) -> Node:
 		path_nodes.append(root.str)
 	return root, path_nodes
 
+"""
+TODO6(annhe) 
 
+This was tested in the notebook.
+This should be unit tested in _test.py file.
+"""
 def logits_to_token_strings(logits):
 	"""
 	Helper function, computes tokens and str representations given logit representation
@@ -74,6 +86,13 @@ def logits_to_token_strings(logits):
     return next_tokens, str_repr
 
 
+"""
+TODO4(annhe)
+
+I'm pretty confident in the correctness of this function
+But it should still be tested, first in a notebook,
+Then a unit test
+"""
 def expand(root:Node, tokenizer, model, k, max_beam_len):
 	"""
 	Note that we can do a more fine-grained exploration of expand by interpolating
@@ -155,6 +174,9 @@ when the MCTS algorithm was called
 
 """
 
+"""
+TODO3(annhe): This should be unit tested.
+"""
 def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]): 
 	# returns full decoded path and its score
 	# consider using a different reward model
@@ -175,7 +197,9 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
 	return res[0], res[2], program
 
 
-
+"""
+TODO1(annhe): This should be rewritten
+"""
 def backpropagate_statistics_V1(path_nodes, max_rollout_reward, c_base, c):
 	# 1. add 1 to all state visit counts
 	# 2. recalculate P_UCB_s_a recursively (backwards)
@@ -201,10 +225,14 @@ def backpropagate_statistics_V1(path_nodes, max_rollout_reward, c_base, c):
     		print(i, k, v)
     		node.P_UCB_s_a[k] = v + beta * node.P_s_a[i] * math.sqrt(torch.log(node.visits)) / (1 + s_prime_visits)
 
-
+"""
+TODO2(annhe): This should be rewritten / fleshed out
+"""
 def main_algorithm(prompt, max_rollouts) -> str:
 	program_dictionary = dict() # to store fully generated programs
 	# program_ditionary[program] = rollout_reward
+	
+	# TODO(annhe): create starting tring
 	root_node = Node(prompt)
 
 	for _ in max_rollouts:
