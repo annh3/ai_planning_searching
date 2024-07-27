@@ -8,8 +8,21 @@ tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
 lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
 
 """
-TODO7(annhe):
+Today, July 26, I want to get the structure of this code right (DONE)
 
+Then set up skeleton functions in the _test.py file to test it (DONE)
+
+Then the next step is to correctly write backpropagate_statistics
+
+Then, the next steps _should_ be to test it in the jupyter 
+notebook, and then to write the real unit tests (which is lower
+priority than testing the quality of decoding... 
+
+Which you can at that point brainstorm how to do.
+"""
+
+"""
+TODO7(annhe):
 This should be refactored / cleaned up.
 """
 class Node:
@@ -31,10 +44,14 @@ class Node:
 		self.P_UCB_s_a = {}
 		self.children = []
 
+
+# Note that if we call expand and evaluate_full_paths from select, i.e. fold it in
+# we don't have to do another traversal of this tree
+# I like that refactor option better
 """
 TODO5(annhe): This should be unit tested.
 """
-def select(root:Node) -> Node:
+def select(root:Node, ) -> Node:
 	"""
 	Given the root node v_o of the MCTS tree,
 	using P-UCB as a criterion, recursively
@@ -53,6 +70,7 @@ def select(root:Node) -> Node:
 	real MCTS tree's data structure in backpropagate_statistics, since Q_s_a 
 	is indexed by string
 	"""
+	mcts_tree_root = root # save this
 	path_nodes = []
 	path_nodes.append(root.str) # name of the current node
 	while len(root.children) > 0:
@@ -60,7 +78,24 @@ def select(root:Node) -> Node:
 		arg_max, max_UCB = max(list(enumerate(UCB_values)), key=lambda x: x) 
 		root = root.children[arg_max]
 		path_nodes.append(root.str)
-	return root, path_nodes
+
+	# return root, path_nodes
+	"""
+	call expand and evaluate
+	"""
+	# root now points to the root v_o to be expanded
+	beams_list = expand(root)
+	max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
+
+	# add the new best action to the Tree
+	new_node = Node(string=top_action)
+	# add the best action to path_nodes
+	path_nodes.append(top_action)
+
+	return top_program, max_rollout_reward, path_nodes
+
+
+	
 
 """
 TODO6(annhe) 
@@ -120,7 +155,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
    	# you'll have to add the same decoding code here
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
     beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
-    beam_list = [(s,b) for s,b in zip(scores,beams)]
+    beam_list = [(a,b,c,d) for a,b,c,d in zip(scores,beams,str_repr,next_tokens)]
 
     for _ in range(max_beam_len-1):
     	new_list = []
@@ -148,7 +183,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 
     		current_beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
     		scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
-    		current_beam_list = [(s,b) for s,b in zip(scores,current_beams,str_repr,next_tokens)]
+    		current_beam_list = [(a,b,c,d) for a,b,c,d in zip(scores,current_beams,str_repr,next_tokens)]
 
     		new_list.extend(current_beam_list)
 
@@ -188,13 +223,13 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
 
 	Returns:
 		max_rollout_reward: the reward from the full sequence
-		top_action: top next action as a string, i.e. v_n.str
+		top_action: top next action as a string, i.e. v_n.str, the first string in the list
 		top_program: the entire sequence representing the full program
 	"""
 	res = sorted(beam_list,key=lambda x: x[1], reverse=True)[0]
 	# scores,current_beams,str_repr,next_tokens
 	program = [' '.join([r[2] for r in res])]
-	return res[0], res[2], program
+	return res[0], res[2][0], program
 
 
 """
@@ -225,6 +260,9 @@ def backpropagate_statistics_V1(path_nodes, max_rollout_reward, c_base, c):
     		print(i, k, v)
     		node.P_UCB_s_a[k] = v + beta * node.P_s_a[i] * math.sqrt(torch.log(node.visits)) / (1 + s_prime_visits)
 
+
+
+
 """
 TODO2(annhe): This should be rewritten / fleshed out
 """
@@ -236,16 +274,9 @@ def main_algorithm(prompt, max_rollouts) -> str:
 	root_node = Node(prompt)
 
 	for _ in max_rollouts:
-		root_vo, path_nodes = select(node)
-		beams_list = expand(root_vo)
-		max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
-		### TODO ###
-		# create a new node with top_action in the MCTS tree
-		# i.e. will need to traverse the tree
-		############
+		top_program, max_rollout_reward, path_nodes = select(node)
 		program_dictionary[top_program] = max_rollout_reward
-		root_vo.children.append(Node(top_action,...)) # todo
-		backpropagate_statistics(path_nodes, reward,...) #todo
+		backpropagate_statistics(path_nodes, max_rollout_reward) #todo
 
 	v = list(program_dictionary.values())
 	k = list(program_dictionary.keys())
