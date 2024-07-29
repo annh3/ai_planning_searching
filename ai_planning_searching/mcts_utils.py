@@ -111,7 +111,7 @@ def logits_to_token_strings(logits):
         str: a list of length batch_size
     """
     k = logits.shape[0]
-    next_tokens = torch.log_softmax(beam_output.logits[0], dim=1)
+    next_tokens = torch.log_softmax(logits, dim=1)
     next_tokens = torch.argmax(next_tokens, dim=1)
     str_repr = tokenizer.batch_decode(next_tokens)
     next_tokens = list(torch.chunk(next_tokens,chunks=k,dim=0))

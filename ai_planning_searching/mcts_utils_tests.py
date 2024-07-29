@@ -33,7 +33,7 @@ class testMCTSUtils(unittest.TestCase):
         # need to call model to get a beam output
         batch_size = 5
         path_length = 3
-        current_path = torch.ones((5,3))
+        current_path = torch.ones((5,3),dtype=torch.long)
         k = 2
         beam_output = self.model.generate(
             current_path,
