@@ -105,10 +105,10 @@ def logits_to_token_strings(logits):
     Helper function, computes tokens and str representations given logit representation
 
     Args:
-        logits: (batch_size, vocab_size)
+        logits: (batch_size*beam_size, vocab_size)
     Returns:
-        tokens: list[Torch.tensor] of tokens of length batch_size
-        str: a list of length batch_size
+        next_tokens: list[Torch.tensor] of tokens of length batch_size*beam_size
+        str_repr: a list of length batch_size
     """
     k = logits.shape[0]
     next_tokens = torch.log_softmax(logits, dim=1)

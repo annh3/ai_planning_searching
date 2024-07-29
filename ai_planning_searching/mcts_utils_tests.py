@@ -46,8 +46,8 @@ class testMCTSUtils(unittest.TestCase):
             early_stopping=True)
 
         next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
-        self.assertIsInstance(next_tokens, torch.Tensor)
-        self.assertIsInstance(str_repr, str)
+        self.assertIsInstance(next_tokens[0], torch.Tensor)
+        self.assertIsInstance(str_repr[0], str)
 
 
     def test_select(self):
