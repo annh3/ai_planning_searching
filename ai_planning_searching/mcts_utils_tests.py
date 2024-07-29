@@ -5,6 +5,7 @@ import json
 from transformers import pipeline, set_seed
 import unittest
 from mcts_utils import Node
+from transformers import AutoModel
 
 
 
@@ -12,7 +13,8 @@ class testMCTSUtils(unittest.TestCase):
 
 	@classmethod
 	def setUpClass(cls):
-		pass 
+		# setup a hugging face model here
+		model = AutoModel.from_pretrained("hf-internal-testing/tiny-random-gpt2")
 
 	@classmethod
 	def tearDownClass(cls):
@@ -27,6 +29,7 @@ class testMCTSUtils(unittest.TestCase):
 		self.assertEqual(new_node.current_token, torch.Tensor([2]))
 
 	def test_logits_to_token_strings(self):
+		# need to call model to get a beam output
 		pass
 
 	def test_select(self):

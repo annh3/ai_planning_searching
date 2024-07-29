@@ -22,10 +22,6 @@ priority than testing the quality of decoding...
 Which you can at that point brainstorm how to do.
 """
 
-"""
-TODO7(annhe):
-This should be refactored / cleaned up.
-"""
 class Node:
     # todo(annhe): refactor this so that the node is just a single token
     current_token: torch.Tensor
