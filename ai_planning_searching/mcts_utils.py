@@ -42,12 +42,6 @@ class Node:
         self.children = []
 
 
-# Note that if we call expand and evaluate_full_paths from select, i.e. fold it in
-# we don't have to do another traversal of this tree
-# I like that refactor option better
-"""
-TODO5(annhe): This should be unit tested.
-"""
 def select(root:Node, node_dictionary) -> Node, list[Node]:
     """
     Given the root node v_o of the MCTS tree,
@@ -102,16 +96,11 @@ def select(root:Node, node_dictionary) -> Node, list[Node]:
 
 
     
-
-"""
-TODO6(annhe) 
-
-This was tested in the notebook.
-This should be unit tested in _test.py file.
-"""
 def logits_to_token_strings(logits):
     """
-    Helper function, computes tokens and str representations given logit representation
+    Helper function, computes tokens and str representations given logit representation.
+    Intended to be used as part of beam decoding, for the next beam_width
+    tokens.
 
     Args:
         logits: (beam_size, vocab_size)
@@ -127,17 +116,12 @@ def logits_to_token_strings(logits):
     return next_tokens, str_repr
 
 
-"""
-TODO4(annhe)
-
-I'm pretty confident in the correctness of this function
-But it should still be tested, first in a notebook,
-Then a unit test
-"""
 def expand(root:Node, tokenizer, model, k, max_beam_len):
     """
-    Note that we can do a more fine-grained exploration of expand by interpolating
-    between the expansion and the roll-out, both of which are done with top-k decoding / beam search.
+    Each item of beam is a tuple like
+
+    beam_item = (sequence_score, partial_tokens, partial_program)
+    ...       = (torch.Tensor([0.5]), ['hello', 'world', ..., '!'], [torch.Tensor([1]),...,torch.Tensor([12])])
     """
     # get top k - one of these will become the best action, and we will need to keep track of that token
     beam_output = model.generate(
@@ -160,8 +144,9 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 
     # you'll have to add the same decoding code here
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
-    beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
-    beam_list = [(a,b,c,d) for a,b,c,d in zip(scores,beams,str_repr,next_tokens)]
+
+
+    beams_list = [(a,b,c) for a,b,c in zip(scores, next_tokens, str_repr)]
 
     for _ in range(max_beam_len-1):
         new_list = []
@@ -175,8 +160,9 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
             https://huggingface.co/docs/transformers/v4.43.3/en/internal/generation_utils#transformers.generation.GenerateBeamDecoderOnlyOutput
 
             """
+            current_tokens = torch.cat(current_path[1])
             beam_output = model.generate(
-            current_path,
+            current_tokens,
             max_new_tokens=1,
             num_beams=k,
             num_return_sequences=k,
@@ -187,37 +173,17 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 
             next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
 
-            current_beams = list(torch.chunk(beam_output.sequences,chunks=k,dim=0))
             scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
-            current_beam_list = [(a,b,c,d) for a,b,c,d in zip(scores,current_beams,str_repr,next_tokens)]
-
-            new_list.extend(current_beam_list)
+            for score,string,next_token in zip(scores,str_repr,next_tokens):
+                # add to beams
+                cur = (score,current_path[2]+[string],current_path[1]+[next_token])
+                new_list.append(cur)
 
         beam_list = new_list
     # should be list of k^(max_beam_len) full paths
     return beam_list 
 
 
-"""
-I notice here that we return the full program.
-We need to find the right truncation 
-
-by convention of how the function is written, 
-this is simply the first "node" in a "beam_list",
-call it v_n, like in the diagram
-
-But we also need all of the nodes on the path 
-from the real root of the MCTS tree, v_o, which
-contains the original prompt that was the input
-when the MCTS algorithm was called
-
-
-
-"""
-
-"""
-TODO3(annhe): This should be unit tested.
-"""
 def evaluate_full_paths(beam_list): 
     # returns full decoded path and its score
     # consider using a different reward model
@@ -233,14 +199,11 @@ def evaluate_full_paths(beam_list):
         top_program: the entire sequence representing the full program
     """
     res = sorted(beam_list,key=lambda x: x[0], reverse=True)[0]
-    # scores,current_beams,str_repr,next_tokens
-    program = [' '.join([r[2] for r in res])]
-    return res[0], res[2][0], program
+    # returns score as a torch.Tensor float, the first string representing
+    # the next action from MCTS search, and the program as a list of torch.Tensor tokens
+    return res[0][0], res[0][2][0], res[0][1]
 
 
-"""
-TODO1(annhe): This should be rewritten
-"""
 def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dictionary):
     # 1. add 1 to all state visit counts
     # 2. recalculate P_UCB_s_a recursively (backwards)
@@ -270,11 +233,8 @@ def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dic
                 print(i, k, v)
                 node.P_UCB_s_a[k] = v + beta * node.P_s_a[i] * math.sqrt(torch.log(node.visits)) / (1 + s_prime_visits)
 
-
-
-
 """
-TODO2(annhe): This should be rewritten / fleshed out
+TODO(annhe): write tests for this
 """
 def main_algorithm(prompt, max_rollouts) -> str:
     program_dictionary = dict() # to store fully generated programs

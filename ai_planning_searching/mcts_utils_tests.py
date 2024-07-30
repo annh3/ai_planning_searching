@@ -135,9 +135,11 @@ class testMCTSUtils(unittest.TestCase):
         self.assertEqual(len(beam_list),max_beam_len**beam_width)
 
     def test_evaluate_full_paths(self):
-        seq_len = 7
-        beam_list = [(torch.Tensor([0.5]), torch.ones((seq_len,)), 'hi', torch.Tensor([5])),(torch.Tensor([0.7]), torch.ones((seq_len,)), 'world', torch.Tensor([5]))]
+        seq_len = 2
+        beam_list = [(torch.Tensor([0.5]), [torch.Tensor([4]),torch.Tensor([6])] ,['hello', 'world']), (torch.Tensor([0.7]), [torch.Tensor([4]),torch.Tensor([11])] ,['hello', 'moon'])]
         max_rollout_reward, top_action, top_program = evaluate_full_paths(beam_list)
+        self.assertIsInstance(top_action, str)
+        # TODO(annhe): add more tests
         
 
     def test_backpropagate_statistics(self):
