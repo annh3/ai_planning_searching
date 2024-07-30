@@ -48,7 +48,7 @@ class Node:
 """
 TODO5(annhe): This should be unit tested.
 """
-def select(root:Node) -> Node, list[Node]:
+def select(root:Node, node_dictionary) -> Node, list[Node]:
     """
     Given the root node v_o of the MCTS tree,
     using P-UCB as a criterion, recursively
@@ -69,12 +69,17 @@ def select(root:Node) -> Node, list[Node]:
     """
     mcts_tree_root = root # save this
     path_nodes = []
-    path_nodes.append(root.str) # name of the current node
+    counter = 0
+    root_node_name = root.str + '_' + str(counter)
+    path_nodes.append(root_node_name) # name of the current node
+    
+
     while len(root.children) > 0:
+        counter += 1
         UCB_values = [P_UCB_s_a[child.str] for child in root.children]
         arg_max, max_UCB = max(list(enumerate(UCB_values)), key=lambda x: x) 
         root = root.children[arg_max]
-        path_nodes.append(root.str)
+        path_nodes.append(root.str + '_' + str(counter))
 
     # return root, path_nodes
     """
@@ -85,9 +90,13 @@ def select(root:Node) -> Node, list[Node]:
     max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
 
     # add the new best action to the Tree
+    # we need to name this node and add it to the tree, dictionary, and the path
+    # make sure you add this to the previous node's children list
+    new_node_name = top_action + '_' + str(counter)
     new_node = Node(string=top_action)
     # add the best action to path_nodes
-    path_nodes.append(top_action)
+    path_nodes.append(new_node_name)
+    node_dictionary[new_node_name] = new_node
 
     return top_program, max_rollout_reward, path_nodes
 
@@ -232,7 +241,7 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
 """
 TODO1(annhe): This should be rewritten
 """
-def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c):
+def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dictionary):
     # 1. add 1 to all state visit counts
     # 2. recalculate P_UCB_s_a recursively (backwards)
     # 3. update Q_s_a with max_rollout_reward
@@ -242,7 +251,10 @@ def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c):
     
     # We need to update path_nodes in reverse order
     reversed_path_nodes = list(reversed(path_nodes))
-    for i, node in enumerate(reversed_path_nodes):
+
+    # we need to keep a dictionary from node string names to Nodes
+    for i, node_name in enumerate(reversed_path_nodes):
+        node = node_dictionary[node_name]
         node.visits += 1
         # Q(s'',a'') <-- max(Q(s'',a''),r)
         if node.Q_s_a is not None: # assume node.Q_s_a is none for the newest node v_n
@@ -268,11 +280,19 @@ def main_algorithm(prompt, max_rollouts) -> str:
     program_dictionary = dict() # to store fully generated programs
     # program_ditionary[program] = rollout_reward
     
-    # TODO(annhe): create starting tring
+    # TODO(annhe)
     root_node = Node(prompt)
 
+    # Create a dictionary mapping node names to nodes
+    # Note that in this case we'll have to append the depth to the token
+    # string to avoid hash collision
+
+    node_dictionary = dict()
+    root_node_label = prompt + '_0'
+    node_dictionary[root_node_label] = root_node
+
     for _ in max_rollouts:
-        top_program, max_rollout_reward, path_nodes = select(node)
+        top_program, max_rollout_reward, path_nodes = select(node, node_dictionary)
         program_dictionary[top_program] = max_rollout_reward
         backpropagate_statistics(path_nodes, max_rollout_reward) #todo
 
