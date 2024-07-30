@@ -48,7 +48,7 @@ class Node:
 """
 TODO5(annhe): This should be unit tested.
 """
-def select(root:Node, ) -> Node:
+def select(root:Node) -> Node, list[Node]:
     """
     Given the root node v_o of the MCTS tree,
     using P-UCB as a criterion, recursively

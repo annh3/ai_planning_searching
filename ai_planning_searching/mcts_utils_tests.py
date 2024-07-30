@@ -11,6 +11,45 @@ from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 class testMCTSUtils(unittest.TestCase):
 
+    def create_mock_tree(self):
+        node_0 = Node(current_token=torch.Tensor([0]), string='0')
+        node_0.P_UCB_s_a['1'] = 0
+        node_0.P_UCB_s_a['3'] = 0
+
+        node_1 = Node(current_token=torch.Tensor([1]), string='1')
+        node_1.P_UCB_s_a['2'] = 0
+
+        node_2 = Node(current_token=torch.Tensor([2]), string='2')
+
+        node_3 = Node(current_token=torch.Tensor([3]), string='3')
+        node_3.P_UCB_s_a['4'] = 5
+        node_4 = Node(current_token=torch.Tensor([4]), string='4')
+
+        self.mcts_root_node = node_0
+
+
+    ####
+    # TODO: for backpropagate statistics
+    ####
+
+    def create_mock_tree(self):
+        node_0 = Node(current_token=torch.Tensor([0]), string='0')
+        node_0.P_UCB_s_a['1'] = 0
+        node_0.P_UCB_s_a['3'] = 0
+
+        node_1 = Node(current_token=torch.Tensor([1]), string='1')
+        node_1.P_UCB_s_a['2'] = 0
+
+        node_2 = Node(current_token=torch.Tensor([2]), string='2')
+
+        node_3 = Node(current_token=torch.Tensor([3]), string='3')
+        node_3.P_UCB_s_a['4'] = 5
+        node_4 = Node(current_token=torch.Tensor([4]), string='4')
+
+        self.mcts_root_node = node_0
+
+
+
     def setUp(self):
         # setup a hugging face model here
         self.pretrained_weights = 'gpt2'
@@ -51,15 +90,34 @@ class testMCTSUtils(unittest.TestCase):
 
 
     def test_select(self):
-        pass
+        # create a mock tree
+        #     [0], '0', 0
+        #  [1], '1', 0      [3], '3', 0
+        #  [2], '2', 0      [4], '4', 5
+        #
+        # [token], string, Q value of each node, which is implicit
+        # Note here that node [4] should be selected
+        create_mock_tree()
+
+        _, max_rollout_reward, path_nodes = test_select(node_0)
+        self.assertEqual(max_rollout_reward, 5)
+        self.assertEqual(path_nodes, ['0', '3', '4'])
 
     def test_expand(self):
-        pass
+
+        beam_width = 3
+        max_beam_len = 5
+
+        beam_list = expand(self.mcts_root_node, self.tokenizer, self.model, beam_width, max_bean_len)
+        self.assertEqual(len(beam_list),max_beam_len**beam_width)
 
     def test_evaluate_full_paths(self):
         pass 
 
-    def backpropagate_statistics(self):
+    def test_backpropagate_statistics(self):
+        c = 0
+        c_base = 1
+
         pass
 
     def test_main_algorthim(self):
