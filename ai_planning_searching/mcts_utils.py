@@ -114,10 +114,10 @@ def logits_to_token_strings(logits):
     Helper function, computes tokens and str representations given logit representation
 
     Args:
-        logits: (batch_size*beam_size, vocab_size)
+        logits: (beam_size, vocab_size)
     Returns:
-        next_tokens: list[Torch.tensor] of tokens of length batch_size*beam_size
-        str_repr: a list of length batch_size
+        next_tokens: list[Torch.tensor] of tokens of length beam_size
+        str_repr: a list[str] of length beam_size
     """
     k = logits.shape[0]
     next_tokens = torch.log_softmax(logits, dim=1)
@@ -218,7 +218,7 @@ when the MCTS algorithm was called
 """
 TODO3(annhe): This should be unit tested.
 """
-def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]): 
+def evaluate_full_paths(beam_list): 
     # returns full decoded path and its score
     # consider using a different reward model
     # suggested in https://openreview.net/pdf?id=Lr8cOOtYbfL to use max(score)
@@ -232,7 +232,7 @@ def evaluate_full_paths(beam_list: list[tuple[torch.Tensor, torch.Tensor]]):
         top_action: top next action as a string, i.e. v_n.str, the first string in the list
         top_program: the entire sequence representing the full program
     """
-    res = sorted(beam_list,key=lambda x: x[1], reverse=True)[0]
+    res = sorted(beam_list,key=lambda x: x[0], reverse=True)[0]
     # scores,current_beams,str_repr,next_tokens
     program = [' '.join([r[2] for r in res])]
     return res[0], res[2][0], program
