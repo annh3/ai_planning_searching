@@ -6,6 +6,7 @@ import math
 from transformers import pipeline, set_seed
 import transformers
 import pdb
+import json
 
 tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
 lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
@@ -42,6 +43,18 @@ class Node:
         self.P_UCB_s_a = dict()
         self.P_s_a = None
         self.children = []
+
+    # omg trying this out
+    def __str__(self):
+        return f"""
+        current_token: {self.current_token}
+        string: {self.string}
+        visits: {self.visits}
+        Q_s_a: {self.Q_s_a}
+        P_UCB_s_a: {self.P_UCB_s_a}
+        P_s_a: {self.P_s_a}
+        children: {self.children}
+        """
 
 
 def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[str]]:
@@ -232,7 +245,7 @@ def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dic
             # Recalculated P_UCB_s_a
             beta = math.log((node.visits + c_base + 1) / c_base) + c
             if i > 0:
-                s_prime_visits = reversed_path_nodes[i-1].visits 
+                s_prime_visits = node_dictionary[reversed_path_nodes[i-1]].visits 
             else:
                 s_prime_visits = 0
             for i, (k, v) in enumerate(new_q_s_a.items()):

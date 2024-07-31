@@ -91,8 +91,16 @@ class testMCTSUtils(unittest.TestCase):
         node_token = torch.Tensor([2])
         string = 'hello'
         new_node = Node(node_token, string)
+        new_node.visits = 1
+        new_node.Q_s_a['another_node'] = 0.9
+        new_node.P_UCB_s_a['another_node'] = 11
+        new_node.P_s_a = torch.ones((5,))
         self.assertEqual(new_node.string, 'hello')
         self.assertEqual(new_node.current_token, torch.Tensor([2]))
+
+        # test that we can serialize the node, including all values
+        # of the Node when instantiated
+        print(new_node)
 
     def test_logits_to_token_strings(self):
         # need to call model to get a beam output
@@ -156,6 +164,8 @@ class testMCTSUtils(unittest.TestCase):
         # with max_rollout_reward
         # Node 0 should have Q_s_a['3'] = max_rollout_reward
         # Node 3 should have Q_s_a['4'] = max_rollout_reward
+
+        # let's print the nodes
         self.assertEqual(node_dictionary['0'].Q_s_a['3'], max_rollout_reward)
         self.assertEqual(node_dictionary['3'].Q_s_a['4'], max_rollout_reward)
 
