@@ -74,6 +74,8 @@ def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[
             maximum rollout reward
         max_rollout_reward: float or torch.Tensor with dtype float?
         path_nodes: list[str] of node names which index into node_dictionary
+                    [v_0,...,v_n] where v_0 is the MCTS root and v_n is the newest addition
+                    to the MCTS tree
 
     (todo): I'm thinking that instead of the node, which is copied,
     we should return node.str, which allows us to traverse the path of the 
@@ -266,12 +268,10 @@ def main_algorithm(prompt, max_rollouts) -> str:
     # Note that in this case we'll have to append the depth to the token
     # string to avoid hash collision
 
-    node_dictionary = dict()
-    root_node_label = prompt + '_0'
-    node_dictionary[root_node_label] = root_node
 
     for _ in max_rollouts:
-        top_program, max_rollout_reward, path_nodes = select(node, node_dictionary)
+        node_dictionary = dict()
+        top_program, max_rollout_reward, path_nodes = select(root_node, node_dictionary)
         program_dictionary[top_program] = max_rollout_reward
         backpropagate_statistics(path_nodes, max_rollout_reward) #todo
 
