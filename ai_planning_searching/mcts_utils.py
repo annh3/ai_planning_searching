@@ -2,8 +2,10 @@ import numpy as np
 import torch
 import collections
 import json
+import math
 from transformers import pipeline, set_seed
 import transformers
+import pdb
 
 tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
 lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
@@ -36,8 +38,8 @@ class Node:
         self.current_token = current_token
         self.string = string
         self.visits = visits
-        self.Q_s_a = None
-        self.P_UCB_s_a = None
+        self.Q_s_a = dict()
+        self.P_UCB_s_a = dict()
         self.P_s_a = None
         self.children = []
 
@@ -205,7 +207,7 @@ def evaluate_full_paths(beam_list):
     res = sorted(beam_list,key=lambda x: x[0], reverse=True)[0]
     # returns score as a torch.Tensor float, the first string representing
     # the next action from MCTS search, and the program as a list of torch.Tensor tokens
-    return res[0][0], res[0][2][0], res[0][1]
+    return res[0], res[2][0], res[1]
 
 
 def backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dictionary):

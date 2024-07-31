@@ -7,7 +7,7 @@ import collections
 import json
 from transformers import pipeline, set_seed
 import unittest
-from mcts_utils import Node, logits_to_token_strings, evaluate_full_paths, expand, main_algorithm
+from mcts_utils import Node, logits_to_token_strings, evaluate_full_paths, expand, main_algorithm, backpropagate_statistics
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 
@@ -151,7 +151,7 @@ class testMCTSUtils(unittest.TestCase):
         path_nodes = ['0', '3', '4']
         max_rollout_reward = 5
         node_dictionary = self.create_mock_tree_2()
-        backpropagate_statistics(path_nodes, max_rollout_rewad, c_base, c, node_dictionary)
+        backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dictionary)
         # test that all of the Q_s_a values of the nodes on the path are updated
         # with max_rollout_reward
         # Node 0 should have Q_s_a['3'] = max_rollout_reward
