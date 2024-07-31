@@ -1,10 +1,13 @@
+"""
+python -m unittest mcts_utils_tests.py
+"""
 import numpy as np
 import torch
 import collections
 import json
 from transformers import pipeline, set_seed
 import unittest
-from mcts_utils import Node, logits_to_token_strings
+from mcts_utils import Node, logits_to_token_strings, evaluate_full_paths, expand, main_algorithm
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 
@@ -120,7 +123,7 @@ class testMCTSUtils(unittest.TestCase):
         #
         # [token], string, Q value of each node, which is implicit
         # Note here that node [4] should be selected
-        create_mock_tree()
+        self.create_mock_tree()
 
         _, max_rollout_reward, path_nodes = test_select(node_0)
         self.assertEqual(max_rollout_reward, 5)
@@ -147,7 +150,7 @@ class testMCTSUtils(unittest.TestCase):
         c_base = 1
         path_nodes = ['0', '3', '4']
         max_rollout_reward = 5
-        node_dictionary = create_mock_tree_2()
+        node_dictionary = self.create_mock_tree_2()
         backpropagate_statistics(path_nodes, max_rollout_rewad, c_base, c, node_dictionary)
         # test that all of the Q_s_a values of the nodes on the path are updated
         # with max_rollout_reward
@@ -159,5 +162,10 @@ class testMCTSUtils(unittest.TestCase):
 
 
     def test_main_algorthim(self):
-        pass
+        prompt = "Hello my name is: "
+        max_rollouts = 3
+        # a simple test, check the return type
+        program = main_algorithm(prompt, max_rollouts)
+        self.assertIsIstance(program[0], torch.Tensor)
+
 

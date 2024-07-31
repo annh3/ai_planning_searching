@@ -42,7 +42,7 @@ class Node:
         self.children = []
 
 
-def select(root:Node, node_dictionary) -> Node, list[Node]:
+def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[str]]:
     """
     Given the root node v_o of the MCTS tree,
     using P-UCB as a criterion, recursively
@@ -50,11 +50,15 @@ def select(root:Node, node_dictionary) -> Node, list[Node]:
     previously expanded (a node without children nodes).
 
 
-    Args: root, the root node of the MCTS tree
+    Args: 
+        root: the root node of the MCTS tree
+        node_dictionary: a dict[str, Node]
+
     Returns: 
-        root: the newly added node to the tree, v_n
-        path_nodes: the list of node.str in the tree which were traversed, starting
-        from the root node v_o, i.e. [v_o.str, v_1.str,...,v_n.str]
+        top_program: list[torch.Tensor] of tokens representing the program from expand with the
+            maximum rollout reward
+        max_rollout_reward: float or torch.Tensor with dtype float?
+        path_nodes: list[str] of node names which index into node_dictionary
 
     (todo): I'm thinking that instead of the node, which is copied,
     we should return node.str, which allows us to traverse the path of the 
