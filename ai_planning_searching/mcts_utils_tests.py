@@ -153,9 +153,10 @@ class testMCTSUtils(unittest.TestCase):
         c = 0
         c_base = 1
         path_nodes = ['0', '3', '4']
+        path_strings = ['0', '3', '4']
         max_rollout_reward = 5
         node_dictionary = self.create_mock_tree_2()
-        backpropagate_statistics(path_nodes, max_rollout_reward, c_base, c, node_dictionary)
+        backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_base, c, node_dictionary)
         # test that all of the Q_s_a values of the nodes on the path are updated
         # with max_rollout_reward
         # Node 0 should have Q_s_a['3'] = max_rollout_reward
