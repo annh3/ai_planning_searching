@@ -152,7 +152,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     """
     # get top k - one of these will become the best action, and we will need to keep track of that token
     beam_output = model.generate(
-    root.tokens,
+    root.current_token,
     max_new_tokens=1,
     num_beams=k,
     num_return_sequences=k,

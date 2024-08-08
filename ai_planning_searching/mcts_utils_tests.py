@@ -7,7 +7,7 @@ import collections
 import json
 from transformers import pipeline, set_seed
 import unittest
-from mcts_utils import Node, logits_to_token_strings, evaluate_full_paths, expand, main_algorithm, backpropagate_statistics
+from mcts_utils import Node, logits_to_token_strings, evaluate_full_paths, expand, main_algorithm, backpropagate_statistics, select
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 
@@ -129,7 +129,7 @@ class testMCTSUtils(unittest.TestCase):
         # Note here that node [4] should be selected
         self.create_mock_tree()
 
-        _, max_rollout_reward, path_nodes = test_select(node_0)
+        _, max_rollout_reward, path_nodes = select(node_0)
         self.assertEqual(max_rollout_reward, 5)
         self.assertEqual(path_nodes, ['0', '3', '4'])
 
@@ -138,7 +138,13 @@ class testMCTSUtils(unittest.TestCase):
         beam_width = 3
         max_beam_len = 5
 
-        beam_list = expand(self.mcts_root_node, self.tokenizer, self.model, beam_width, max_bean_len)
+        node_0 = Node(current_token=torch.Tensor([0]), string='0')
+        node_0.P_UCB_s_a['1'] = 0
+        node_0.P_UCB_s_a['3'] = 0
+        node_0.P_s_a = torch.ones((beam_width,),dtype=torch.float)
+        node_0.P_s_a = node_0.P_s_a / beam_width
+
+        beam_list = expand(node_0, self.tokenizer, self.model, beam_width, max_beam_len)
         self.assertEqual(len(beam_list),max_beam_len**beam_width)
 
     def test_evaluate_full_paths(self):
