@@ -243,15 +243,19 @@ def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_bas
     # We need to update path_nodes in reverse order
     reversed_path_nodes = list(reversed(path_nodes))
     list_len = len(reversed_path_nodes)
+    path_strings = list(reversed(path_strings))
+
+    print("REVERSED PATH NODES: ", reversed_path_nodes)
 
     # we need to keep a dictionary from node string names to Nodes
     for i, node_name in enumerate(reversed_path_nodes):
-        if i >= list_len - 1:
+        if i == 0:
             continue
         node = node_dictionary[node_name]
         node.visits += 1
         # Q(s'',a'') <-- max(Q(s'',a''),r)
         if len(node.Q_s_a) == 0:
+            print("HELLO CREATING NEW ENTRY")
             # create an entry, how do you know what the next action is?
             # it's path_strings[i-1]
             node.Q_s_a[path_strings[i-1]] = max_rollout_reward
