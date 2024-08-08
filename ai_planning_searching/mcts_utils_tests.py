@@ -226,10 +226,10 @@ class testMCTSUtils(unittest.TestCase):
         # Node 3 should have Q_s_a['4'] = max_rollout_reward
 
         # print the nodes to debug
-        for k,v in node_dictionary.items():
-            print(k)
-            print(v)
-            print('\n\n')
+        #for k,v in node_dictionary.items():
+        #    print(k)
+        #    print(v)
+        #    print('\n\n')
 
         self.assertEqual(node_dictionary['0'].Q_s_a['3'], max_rollout_reward)
         self.assertEqual(node_dictionary['3'].Q_s_a['4'], max_rollout_reward)
