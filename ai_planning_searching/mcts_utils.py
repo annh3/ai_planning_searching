@@ -93,7 +93,7 @@ def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[
 
     while len(root.children) > 0:
         counter += 1
-        UCB_values = [P_UCB_s_a[child.str] for child in root.children]
+        UCB_values = [root.P_UCB_s_a[child.str] for child in root.children]
         arg_max, max_UCB = max(list(enumerate(UCB_values)), key=lambda x: x) 
         root = root.children[arg_max]
         path_nodes.append(root.str + '_' + str(counter))
@@ -140,7 +140,6 @@ def logits_to_token_strings(logits):
     next_tokens = torch.argmax(next_tokens, dim=1)
     str_repr = tokenizer.batch_decode(next_tokens)
     next_tokens = list(torch.chunk(next_tokens,chunks=k,dim=0))
-    pdb.set_trace()
     return next_tokens, str_repr
 
 
@@ -174,7 +173,6 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     # Note: these are the candidates for v_n
     next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
     ### !!! I think here you need to concatenate the next_tokens with the previous tokens
-    pdb.set_trace()
 
     # you'll have to add the same decoding code here
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
