@@ -1,6 +1,7 @@
 """
 python -m unittest mcts_utils_tests.py
 """
+import pdb
 import numpy as np
 import torch
 import collections
@@ -148,8 +149,11 @@ class testMCTSUtils(unittest.TestCase):
 
         beam_width = 3
         max_beam_len = 5
+        current_token = torch.Tensor([[0]])
+        current_token = current_token.type(torch.LongTensor)
+        # pdb.set_trace()
 
-        node_0 = Node(current_token=torch.Tensor([0]), string='0')
+        node_0 = Node(current_token=current_token, string='0')
         node_0.P_UCB_s_a['1'] = 0
         node_0.P_UCB_s_a['3'] = 0
         node_0.P_s_a = torch.ones((beam_width,),dtype=torch.float)

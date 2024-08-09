@@ -140,6 +140,7 @@ def logits_to_token_strings(logits):
     next_tokens = torch.argmax(next_tokens, dim=1)
     str_repr = tokenizer.batch_decode(next_tokens)
     next_tokens = list(torch.chunk(next_tokens,chunks=k,dim=0))
+    pdb.set_trace()
     return next_tokens, str_repr
 
 
@@ -151,6 +152,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     ...       = (torch.Tensor([0.5]), ['hello', 'world', ..., '!'], [torch.Tensor([1]),...,torch.Tensor([12])])
     """
     # get top k - one of these will become the best action, and we will need to keep track of that token
+    # pdb.set_trace()
     beam_output = model.generate(
     root.current_token,
     max_new_tokens=1,
@@ -158,7 +160,10 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     num_return_sequences=k,
     return_dict_in_generate=True,
     output_scores=True,
-    early_stopping=True)
+    early_stopping=True,
+    output_logits=True)
+
+    # pdb.set_trace()
 
     # todo(annhe): Add scores of beams to node.P_s_a
     # https://discuss.huggingface.co/t/announcement-generation-get-probabilities-for-generated-output/30075/14
@@ -168,12 +173,14 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 
     # Note: these are the candidates for v_n
     next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
+    ### !!! I think here you need to concatenate the next_tokens with the previous tokens
+    pdb.set_trace()
 
     # you'll have to add the same decoding code here
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
 
 
-    beams_list = [(a,b,c) for a,b,c in zip(scores, next_tokens, str_repr)]
+    beam_list = [(a,b,c) for a,b,c in zip(scores, next_tokens, str_repr)]
 
     for _ in range(max_beam_len-1):
         new_list = []
