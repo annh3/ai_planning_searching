@@ -1,5 +1,7 @@
 """
 python -m unittest mcts_utils_tests.py
+
+python -m unittest mcts_utils_tests.testMCTSUtils.test_expand
 """
 import pdb
 import numpy as np
@@ -165,7 +167,7 @@ class testMCTSUtils(unittest.TestCase):
         node_0.P_s_a = node_0.P_s_a / beam_width
 
         beam_list = expand(node_0, self.tokenizer, self.model, beam_width, max_beam_len)
-        self.assertEqual(len(beam_list),max_beam_len**beam_width)
+        self.assertEqual(len(beam_list),beam_width**max_beam_len)
 
     def test_evaluate_full_paths(self):
         seq_len = 2

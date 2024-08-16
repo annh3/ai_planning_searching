@@ -178,9 +178,10 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
 
 
-    beam_list = [(a,b,c) for a,b,c in zip(scores, next_tokens, str_repr)]
+    beam_list = [(a,[b],[c]) for a,b,c in zip(scores, next_tokens, str_repr)]
 
     for _ in range(max_beam_len-1):
+        print("Length of beam_list: ", len(beam_list))
         new_list = []
         for current_path in beam_list:
             """
@@ -192,7 +193,10 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
             https://huggingface.co/docs/transformers/v4.43.3/en/internal/generation_utils#transformers.generation.GenerateBeamDecoderOnlyOutput
 
             """
+            # pdb.set_trace()
             current_tokens = torch.cat(current_path[1])
+            current_tokens = current_tokens.unsqueeze(0)
+            # pdb.set_trace()
             beam_output = model.generate(
             current_tokens,
             max_new_tokens=1,
@@ -208,7 +212,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
             scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
             for score,string,next_token in zip(scores,str_repr,next_tokens):
                 # add to beams
-                cur = (score,current_path[2]+[string],current_path[1]+[next_token])
+                cur = (score,current_path[1]+[next_token],current_path[2]+[string])
                 new_list.append(cur)
 
         beam_list = new_list
