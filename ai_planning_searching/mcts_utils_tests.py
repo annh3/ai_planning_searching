@@ -1,7 +1,7 @@
 """
 python -m unittest mcts_utils_tests.py
 
-python -m unittest mcts_utils_tests.testMCTSUtils.test_expand
+python -m unittest mcts_utils_tests.testMCTSUtils.test_select
 """
 import pdb
 import numpy as np
@@ -52,6 +52,8 @@ class testMCTSUtils(unittest.TestCase):
 
 
         node_0 = Node(current_token=torch.Tensor([0]), string='0')
+        node_0.current_token = node_0.current_token.unsqueeze(0)
+        node_0.current_token = node_0.current_token.type(torch.LongTensor)
         node_0.P_UCB_s_a['1'] = 0
         node_0.P_UCB_s_a['3'] = 0
         node_0.str = '0'
@@ -60,6 +62,8 @@ class testMCTSUtils(unittest.TestCase):
         node_dictionary['0'] = node_0
 
         node_1 = Node(current_token=torch.Tensor([1]), string='1')
+        node_1.current_token = node_1.current_token.unsqueeze(0)
+        node_1.current_token = node_1.current_token.type(torch.LongTensor)
         node_1.P_UCB_s_a['2'] = 0
         node_1.str = '1'
         node_1.P_s_a = torch.ones((beam_width,),dtype=torch.float)
@@ -67,6 +71,8 @@ class testMCTSUtils(unittest.TestCase):
         node_dictionary['1'] = node_1
 
         node_2 = Node(current_token=torch.Tensor([2]), string='2')
+        node_2.current_token = node_2.current_token.unsqueeze(0)
+        node_2.current_token = node_2.current_token.type(torch.LongTensor)
         node_2.str = '2'
         node_2.P_s_a = torch.ones((beam_width,),dtype=torch.float)
         node_2.P_s_a = node_2.P_s_a / beam_width
@@ -74,6 +80,8 @@ class testMCTSUtils(unittest.TestCase):
 
 
         node_3 = Node(current_token=torch.Tensor([3]), string='3')
+        node_3.current_token = node_3.current_token.unsqueeze(0)
+        node_3.current_token = node_3.current_token.type(torch.LongTensor)
         node_3.P_UCB_s_a['4'] = 5
         node_3.str = '3'
         node_3.P_s_a = torch.ones((beam_width,),dtype=torch.float)
@@ -81,6 +89,8 @@ class testMCTSUtils(unittest.TestCase):
         node_dictionary['3'] = node_3
 
         node_4 = Node(current_token=torch.Tensor([4]), string='4')
+        node_4.current_token = node_4.current_token.unsqueeze(0)
+        node_4.current_token = node_4.current_token.type(torch.LongTensor)
         node_4.str = '4'
         node_4.P_s_a = torch.ones((beam_width,),dtype=torch.float)
         node_4.P_s_a = node_4.P_s_a / beam_width
@@ -148,7 +158,7 @@ class testMCTSUtils(unittest.TestCase):
         # Note here that node [4] should be selected
         node_dictionary = self.create_mock_tree_2()
 
-        _, max_rollout_reward, path_nodes = select(self.mcts_root_node, node_dictionary)
+        _, max_rollout_reward, path_nodes = select(self.mcts_root_node, self.tokenizer, self.model, 3, 10, node_dictionary)
         self.assertEqual(max_rollout_reward, 5)
         self.assertEqual(path_nodes, ['0', '3', '4'])
 

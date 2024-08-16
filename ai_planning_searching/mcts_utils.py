@@ -8,8 +8,6 @@ import transformers
 import pdb
 import json
 
-tokenizer = transformers.AutoTokenizer.from_pretrained('gpt2')
-lm = transformers.AutoModelForCausalLM.from_pretrained('gpt2')
 
 """
 Today, July 26, I want to get the structure of this code right (DONE)
@@ -56,8 +54,7 @@ class Node:
         children: {self.children}
         """
 
-
-def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[str]]:
+def select(root:Node, tokenizer, model, k, max_beam_len, node_dictionary) -> tuple[list[torch.Tensor], float, list[str]]:
     """
     Given the root node v_o of the MCTS tree,
     using P-UCB as a criterion, recursively
@@ -104,7 +101,8 @@ def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[
     call expand and evaluate
     """
     # root now points to the root v_o to be expanded
-    beams_list = expand(root)
+    # tokenizer, model, k, max_beam_len
+    beams_list = expand(root, tokenizer, model, k, max_beam_len)
     max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
 
     # add the new best action to the Tree
@@ -123,7 +121,7 @@ def select(root:Node, node_dictionary) -> tuple[list[torch.Tensor], float, list[
 
 
     
-def logits_to_token_strings(logits):
+def logits_to_token_strings(logits, tokenizer):
     """
     Helper function, computes tokens and str representations given logit representation.
     Intended to be used as part of beam decoding, for the next beam_width
@@ -171,7 +169,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     root.P_s_a = beam_output.sequences_scores # size 
 
     # Note: these are the candidates for v_n
-    next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
+    next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0], tokenizer)
     ### !!! I think here you need to concatenate the next_tokens with the previous tokens
 
     # you'll have to add the same decoding code here
@@ -207,7 +205,7 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
             output_scores=True,
             early_stopping=True)
 
-            next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0])
+            next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0], tokenizer)
 
             scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
             for score,string,next_token in zip(scores,str_repr,next_tokens):
@@ -294,10 +292,16 @@ def main_algorithm(prompt, max_rollouts) -> str:
     c_base = 1
     c = 0.5
 
+    pretrained_weights = 'gpt2'
+    tokenizer = GPT2TokenizerFast.from_pretrained(pretrained_weights)
+    model = GPT2LMHeadModel.from_pretrained(pretrained_weights)
+    k = 3
+    max_beam_len = 10
+
 
     for _ in max_rollouts:
         node_dictionary = dict()
-        top_program, max_rollout_reward, path_nodes, path_strings = select(root_node, node_dictionary)
+        top_program, max_rollout_reward, path_nodes, path_strings = select(root_node, tokenizer, model, k, max_beam_len, node_dictionary)
         program_dictionary[top_program] = max_rollout_reward
         backpropagate_statistics(path_nodes, path_strings, max_rollout_reward,  c_base, c, node_dictionary) #todo
 
