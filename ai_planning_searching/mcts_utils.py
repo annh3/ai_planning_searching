@@ -54,7 +54,7 @@ class Node:
         children: {self.children}
         """
 
-def select(root:Node, tokenizer, model, k, max_beam_len, node_dictionary) -> tuple[list[torch.Tensor], float, list[str]]:
+def select(root:Node) -> tuple[Node, list[str]]:
     """
     Given the root node v_o of the MCTS tree,
     using P-UCB as a criterion, recursively
@@ -96,28 +96,8 @@ def select(root:Node, tokenizer, model, k, max_beam_len, node_dictionary) -> tup
         path_nodes.append(root.str + '_' + str(counter))
         path_strings.append(root.str)
 
-    # return root, path_nodes
-    """
-    call expand and evaluate
-    """
-    # root now points to the root v_o to be expanded
-    # tokenizer, model, k, max_beam_len
-    beams_list = expand(root, tokenizer, model, k, max_beam_len)
-    max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
-
-    # add the new best action to the Tree
-    # we need to name this node and add it to the tree, dictionary, and the path
-    # make sure you add this to the previous node's children list
-    new_node_name = top_action + '_' + str(counter)
-    new_node = Node(string=top_action)
-    # add the best action to path_nodes
-    path_nodes.append(new_node_name)
-    path_strings.append(top_action)
-    node_dictionary[new_node_name] = new_node
-    # you need to add the child node to the previous node
-    root.children.append(new_node)
-
-    return top_program, max_rollout_reward, path_nodes, path_strings
+    
+    return root, path_nodes
 
 
     
@@ -301,8 +281,18 @@ def main_algorithm(prompt, max_rollouts) -> str:
 
     for _ in max_rollouts:
         node_dictionary = dict()
-        top_program, max_rollout_reward, path_nodes, path_strings = select(root_node, tokenizer, model, k, max_beam_len, node_dictionary)
+        node_to_expand, path_nodes = select(root_node, tokenizer, model, k, max_beam_len, node_dictionary)
+        beams_list = expand(node_to_expand, tokenizer, model, k, max_beam_len)
+        max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
         program_dictionary[top_program] = max_rollout_reward
+        new_node_name = top_action + '_' + str(counter)
+        new_node = Node(string=top_action)
+        # add the best action to path_nodes
+        path_nodes.append(new_node_name)
+        path_strings.append(top_action)
+        node_dictionary[new_node_name] = new_node
+        # you need to add the child node to the previous node
+        node_to_expand.children.append(new_node)
         backpropagate_statistics(path_nodes, path_strings, max_rollout_reward,  c_base, c, node_dictionary) #todo
 
     v = list(program_dictionary.values())
