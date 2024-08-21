@@ -97,7 +97,7 @@ def select(root:Node) -> tuple[Node, list[str]]:
         path_strings.append(root.str)
 
     
-    return root, path_nodes
+    return root, path_nodes, counter
 
 
     
@@ -281,10 +281,11 @@ def main_algorithm(prompt, max_rollouts) -> str:
 
     for _ in max_rollouts:
         node_dictionary = dict()
-        node_to_expand, path_nodes = select(root_node, tokenizer, model, k, max_beam_len, node_dictionary)
+        node_to_expand, path_nodes, counter = select(root_node, tokenizer, model, k, max_beam_len, node_dictionary)
         beams_list = expand(node_to_expand, tokenizer, model, k, max_beam_len)
         max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
         program_dictionary[top_program] = max_rollout_reward
+        counter += 1
         new_node_name = top_action + '_' + str(counter)
         new_node = Node(string=top_action)
         # add the best action to path_nodes

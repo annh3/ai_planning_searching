@@ -158,9 +158,10 @@ class testMCTSUtils(unittest.TestCase):
         # Note here that node [4] should be selected
         node_dictionary = self.create_mock_tree_2()
 
-        _, max_rollout_reward, path_nodes = select(self.mcts_root_node, self.tokenizer, self.model, 3, 10, node_dictionary)
-        self.assertEqual(max_rollout_reward, 5)
-        self.assertEqual(path_nodes, ['0', '3', '4'])
+        node_to_expand, path_nodes, counter = select(self.mcts_root_node)
+        self.assertEqual(node_to_expand.str, '4')
+        self.assertEqual(counter, 2)
+        self.assertEqual(path_nodes, ['0_0', '3_1', '4_2'])
 
     def test_expand(self):
 
