@@ -7,6 +7,7 @@ from transformers import pipeline, set_seed
 import transformers
 import pdb
 import json
+from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 
 """
@@ -54,7 +55,7 @@ class Node:
         children: {self.children}
         """
 
-def select(root:Node) -> tuple[Node, list[str]]:
+def select(root:Node, node_dictionary: dict[str, Node]) -> tuple[Node, list[str]]:
     """
     Given the root node v_o of the MCTS tree,
     using P-UCB as a criterion, recursively
@@ -79,25 +80,28 @@ def select(root:Node) -> tuple[Node, list[str]]:
     real MCTS tree's data structure in backpropagate_statistics, since Q_s_a 
     is indexed by string
     """
+    counter = 0
     mcts_tree_root = root # save this
+    node_dictionary[mcts_tree_root.string + '_' + str(counter)] = mcts_tree_root
     path_nodes = []
     path_strings = []
-    counter = 0
-    root_node_name = root.str + '_' + str(counter)
+    print("root.string: ", root.string)
+    root_node_name = root.string + '_' + str(counter)
     path_nodes.append(root_node_name) # name of the current node
-    path_strings.append(root.str)
+    path_strings.append(root.string)
     
 
     while len(root.children) > 0:
         counter += 1
-        UCB_values = [root.P_UCB_s_a[child.str] for child in root.children]
+        UCB_values = [root.P_UCB_s_a[child.string] for child in root.children]
         arg_max, max_UCB = max(list(enumerate(UCB_values)), key=lambda x: x) 
         root = root.children[arg_max]
-        path_nodes.append(root.str + '_' + str(counter))
-        path_strings.append(root.str)
+        node_dictionary[root.string] = root
+        path_nodes.append(root.string + '_' + str(counter))
+        path_strings.append(root.string)
 
     
-    return root, path_nodes, counter
+    return root, path_nodes, counter, path_strings
 
 
     
@@ -130,8 +134,9 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     """
     # get top k - one of these will become the best action, and we will need to keep track of that token
     # pdb.set_trace()
+    current_tokens = root.current_token.unsqueeze(0)
     beam_output = model.generate(
-    root.current_token,
+    current_tokens,
     max_new_tokens=1,
     num_beams=k,
     num_return_sequences=k,
@@ -231,6 +236,7 @@ def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_bas
     reversed_path_nodes = list(reversed(path_nodes))
     list_len = len(reversed_path_nodes)
     path_strings = list(reversed(path_strings))
+    pdb.set_trace()
 
     # we need to keep a dictionary from node string names to Nodes
     for i, node_name in enumerate(reversed_path_nodes):
@@ -243,6 +249,7 @@ def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_bas
             # create an entry, how do you know what the next action is?
             # it's path_strings[i-1]
             node.Q_s_a[path_strings[i-1]] = max_rollout_reward
+            node.P_UCB_s_a[path_strings[i-1]] = max_rollout_reward
         else: # assume node.Q_s_a is none for the newest node v_n
             new_q_s_a = {k: max(v, max_rollout_reward) for k,v in node.Q_s_a.items()}
             node.Q_s_a = new_q_s_a
@@ -259,35 +266,40 @@ def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_bas
 """
 TODO(annhe): write tests for this
 """
-def main_algorithm(prompt, max_rollouts) -> str:
-    program_dictionary = dict() # to store fully generated programs
-    # program_ditionary[program] = rollout_reward
-    
-    # TODO(annhe)
-    root_node = Node(prompt)
-
-    # Create a dictionary mapping node names to nodes
-    # Note that in this case we'll have to append the depth to the token
-    # string to avoid hash collision
+def main_algorithm(prompt, max_rollouts, k, max_beam_len) -> str:
     c_base = 1
     c = 0.5
 
     pretrained_weights = 'gpt2'
     tokenizer = GPT2TokenizerFast.from_pretrained(pretrained_weights)
     model = GPT2LMHeadModel.from_pretrained(pretrained_weights)
-    k = 3
-    max_beam_len = 10
+    program_dictionary = dict() # to store fully generated programs
+    # program_ditionary[program] = rollout_reward
+    
+    # TODO(annhe)
+    # convert the prompt to tokens
+    prompt_tokens = tokenizer.encode(prompt)
+    prompt_tokens = torch.Tensor(prompt_tokens)
+    prompt_tokens = prompt_tokens.type(torch.LongTensor)
+    root_node = Node(current_token=prompt_tokens,string=prompt)
+
+   
 
 
-    for _ in max_rollouts:
+    for _ in range(max_rollouts):
         node_dictionary = dict()
-        node_to_expand, path_nodes, counter = select(root_node, tokenizer, model, k, max_beam_len, node_dictionary)
+        node_to_expand, path_nodes, counter, path_strings = select(root_node, node_dictionary)
         beams_list = expand(node_to_expand, tokenizer, model, k, max_beam_len)
         max_rollout_reward, top_action, top_program = evaluate_full_paths(beams_list)
-        program_dictionary[top_program] = max_rollout_reward
+        top_program_tensor = torch.cat(top_program)
+        program_dictionary[top_program_tensor] = max_rollout_reward
         counter += 1
         new_node_name = top_action + '_' + str(counter)
-        new_node = Node(string=top_action)
+        # current_token is top_action encoded
+        action_token = tokenizer.encode(top_action)
+        action_token = torch.Tensor(top_action)
+        action_token = prompt_tokens.type(torch.LongTensor)
+        new_node = Node(current_token=action_token,string=top_action)
         # add the best action to path_nodes
         path_nodes.append(new_node_name)
         path_strings.append(top_action)
