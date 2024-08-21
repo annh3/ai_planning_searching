@@ -10,22 +10,7 @@ import json
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 
-"""
-Today, July 26, I want to get the structure of this code right (DONE)
-
-Then set up skeleton functions in the _test.py file to test it (DONE)
-
-Then the next step is to correctly write backpropagate_statistics
-
-Then, the next steps _should_ be to test it in the jupyter 
-notebook, and then to write the real unit tests (which is lower
-priority than testing the quality of decoding... 
-
-Which you can at that point brainstorm how to do.
-"""
-
 class Node:
-    # todo(annhe): refactor this so that the node is just a single token
     current_token: torch.Tensor
     string: str # string representation of current token
     Q_s_a: dict[str,float] # Q values of the node's children
