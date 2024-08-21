@@ -260,6 +260,6 @@ class testMCTSUtils(unittest.TestCase):
         max_beam_len = 2
         # a simple test, check the return type
         program = main_algorithm(prompt, max_rollouts, k, max_beam_len)
-        self.assertIsIstance(program[0], torch.Tensor)
+        self.assertIsInstance(program[0], torch.Tensor)
 
 
