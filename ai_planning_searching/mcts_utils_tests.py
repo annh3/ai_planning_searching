@@ -18,34 +18,6 @@ from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 class testMCTSUtils(unittest.TestCase):
 
     def create_mock_tree(self):
-        node_0 = Node(current_token=torch.Tensor([0]), string='0')
-        node_0.P_UCB_s_a['1'] = 0
-        node_0.P_UCB_s_a['3'] = 0
-
-        node_1 = Node(current_token=torch.Tensor([1]), string='1')
-        node_1.P_UCB_s_a['2'] = 0
-
-        node_2 = Node(current_token=torch.Tensor([2]), string='2')
-
-        node_3 = Node(current_token=torch.Tensor([3]), string='3')
-        node_3.P_UCB_s_a['4'] = 5
-        node_4 = Node(current_token=torch.Tensor([4]), string='4')
-
-        node_0.children = [node_1, node_3]
-        node_1.children = [node_2]
-        node_3.children = [node_4]
-        # are these going to be persistent on the stack?
-        # I think you're going to need to write a different function
-        # to instantiate them
-
-        self.mcts_root_node = node_0
-
-
-    ####
-    # TODO: for backpropagate statistics
-    ####
-
-    def create_mock_tree_2(self):
         beam_width = 5
         node_dictionary = dict()
 
@@ -126,6 +98,7 @@ class testMCTSUtils(unittest.TestCase):
             max_new_tokens=1,
             num_beams=k,
             num_return_sequences=k,
+            pad_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_logits=True,
             output_scores=True,
@@ -144,7 +117,7 @@ class testMCTSUtils(unittest.TestCase):
         #
         # [token], string, Q value of each node, which is implicit
         # Note here that node [4] should be selected
-        node_dictionary = self.create_mock_tree_2()
+        node_dictionary = self.create_mock_tree()
 
         node_to_expand, path_nodes, counter, path_strings = select(self.mcts_root_node, {})
         self.assertEqual(node_to_expand.string, '4')
@@ -182,29 +155,13 @@ class testMCTSUtils(unittest.TestCase):
         path_nodes = ['0', '3', '4']
         path_strings = ['0', '3', '4']
         max_rollout_reward = 5
-        #node_dictionary = self.create_mock_tree_2()
-
-        #### Testing this instead ####
-        beam_width = 5
-        node_dictionary = self.create_mock_tree_2()
-
-
-        ##############################
-
-
-
+        node_dictionary = self.create_mock_tree()
 
         backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_base, c, node_dictionary)
         # test that all of the Q_s_a values of the nodes on the path are updated
         # with max_rollout_reward
         # Node 0 should have Q_s_a['3'] = max_rollout_reward
         # Node 3 should have Q_s_a['4'] = max_rollout_reward
-
-        # print the nodes to debug
-        #for k,v in node_dictionary.items():
-        #    print(k)
-        #    print(v)
-        #    print('\n\n')
 
         self.assertEqual(node_dictionary['0'].Q_s_a['3'], max_rollout_reward)
         self.assertEqual(node_dictionary['3'].Q_s_a['4'], max_rollout_reward)
@@ -213,12 +170,14 @@ class testMCTSUtils(unittest.TestCase):
 
     def test_main_algorithm(self):
         prompt = "Hello my name is: "
-        max_rollouts = 3
+        max_rollouts = 7
         k = 3
-        max_beam_len = 2
+        max_beam_len = 5
         # a simple test, check the return type
         program, root_node = main_algorithm(prompt, max_rollouts, k, max_beam_len)
         self.assertIsInstance(program[0], torch.Tensor)
+        str_repr = self.tokenizer.decode(program)
+        print("program string: ", str_repr)
         # traverse the tree and assert that current_token is a single token
         visited = set()
         queue = []
@@ -227,7 +186,6 @@ class testMCTSUtils(unittest.TestCase):
         counter = 0
         while queue:
             cur = queue.pop(0)
-            print("string: ", cur.string)
             if counter > 0:
                 self.assertEqual(cur.current_token.shape,torch.Size([1]))
             counter += 1

@@ -28,7 +28,6 @@ class Node:
         self.P_s_a = dict()
         self.children = []
 
-    # omg trying this out
     def __str__(self):
         return f"""
         current_token: {self.current_token}
@@ -55,15 +54,12 @@ def select(root:Node, node_dictionary: dict[str, Node]) -> tuple[Node, list[str]
     Returns: 
         top_program: list[torch.Tensor] of tokens representing the program from expand with the
             maximum rollout reward
-        max_rollout_reward: float or torch.Tensor with dtype float?
         path_nodes: list[str] of node names which index into node_dictionary
                     [v_0,...,v_n] where v_0 is the MCTS root and v_n is the newest addition
                     to the MCTS tree
+        counter: To keep track of the depth of the path in the current rollout
+        path_strings: Node strings without the counter
 
-    (todo): I'm thinking that instead of the node, which is copied,
-    we should return node.str, which allows us to traverse the path of the 
-    real MCTS tree's data structure in backpropagate_statistics, since Q_s_a 
-    is indexed by string
     """
     counter = 0
     mcts_tree_root = root # save this
@@ -117,24 +113,22 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     ...       = (torch.Tensor([0.18]), torch.Tensor([0.5]), ['hello', 'world', ..., '!'], [torch.Tensor([1]),...,torch.Tensor([12])])
     """
     # get top k - one of these will become the best action, and we will need to keep track of that token
-    # pdb.set_trace()
     current_tokens = root.current_token.unsqueeze(0)
     beam_output = model.generate(
     current_tokens,
     max_new_tokens=1,
     num_beams=k,
     num_return_sequences=k,
+    pad_token_id=tokenizer.eos_token_id,
     return_dict_in_generate=True,
     output_scores=True,
     early_stopping=True,
     output_logits=True)
 
-    # pdb.set_trace()
     transition_scores = list(torch.chunk(beam_output.scores[0],chunks=k,dim=0))
     transition_scores = [t[-1] for t in transition_scores]
     # keep the score of this first expand only
 
-    # todo(annhe): Add scores of beams to node.P_s_a
     # https://discuss.huggingface.co/t/announcement-generation-get-probabilities-for-generated-output/30075/14
     # sequences_scores are the sum of the log probabilities of the generated tokens
     # in the sequence, i.e. log p(y1y2...yk), which decomposes sum-wise
@@ -142,14 +136,12 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
     # Note: these are the candidates for v_n
     next_tokens, str_repr = logits_to_token_strings(beam_output.logits[0], tokenizer)
 
-    # you'll have to add the same decoding code here
     sequence_scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
 
 
     beam_list = [(t,a,[b],[c]) for t,a,b,c in zip(transition_scores, sequence_scores, next_tokens, str_repr)]
 
     for _ in range(max_beam_len-1):
-        print("Length of beam_list: ", len(beam_list))
         new_list = []
         for current_path in beam_list:
             """
@@ -161,15 +153,14 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
             https://huggingface.co/docs/transformers/v4.43.3/en/internal/generation_utils#transformers.generation.GenerateBeamDecoderOnlyOutput
 
             """
-            # pdb.set_trace()
             current_tokens = torch.cat(current_path[2])
             current_tokens = current_tokens.unsqueeze(0)
-            # pdb.set_trace()
             beam_output = model.generate(
             current_tokens,
             max_new_tokens=1,
             num_beams=k,
             num_return_sequences=k,
+            pad_token_id=tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_logits=True,
             output_scores=True,
@@ -179,7 +170,6 @@ def expand(root:Node, tokenizer, model, k, max_beam_len):
 
             sequence_scores = list(torch.chunk(beam_output.sequences_scores,chunks=k,dim=0))
             for score,string,next_token in zip(sequence_scores,str_repr,next_tokens):
-                # add to beams
                 cur = (current_path[0],score,current_path[2]+[next_token],current_path[3]+[string])
                 new_list.append(cur)
 
@@ -226,7 +216,6 @@ def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_bas
     list_len = len(reversed_path_nodes)
     path_strings = list(reversed(path_strings))
 
-    # we need to keep a dictionary from node string names to Nodes
     for i, node_name in enumerate(reversed_path_nodes):
         if i == 0:
             node = node_dictionary[node_name]
@@ -242,41 +231,32 @@ def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_bas
             node.Q_s_a[path_strings[i-1]] = max_rollout_reward
             s_prime_visits = node_dictionary[reversed_path_nodes[i-1]].visits 
             node.P_UCB_s_a[path_strings[i-1]] = max_rollout_reward + node.P_s_a[path_strings[i-1]] * math.sqrt(math.log(node.visits)) / (1 + s_prime_visits)
-        else: # assume node.Q_s_a is none for the newest node v_n
+        else: 
             new_q_s_a = {k: max(v, max_rollout_reward) for k,v in node.Q_s_a.items()}
             node.Q_s_a = new_q_s_a
             # Recalculated P_UCB_s_a
             beta = math.log((node.visits + c_base + 1) / c_base) + c
             s_prime_visits = node_dictionary[reversed_path_nodes[i-1]].visits 
             for i, (k, v) in enumerate(new_q_s_a.items()):
-                print(i, k, v)
                 node.P_UCB_s_a[k] = v + beta * node.P_s_a[k] * math.sqrt(math.log(node.visits)) / (1 + s_prime_visits)
 
-"""
-TODO(annhe): write tests for this
-"""
-def main_algorithm(prompt, max_rollouts, k, max_beam_len) -> str:
-    c_base = 1
-    c = 0.5
+
+
+def main_algorithm(prompt, max_rollouts, k, max_beam_len, c_base=1, c=0.5) -> str:
 
     pretrained_weights = 'gpt2'
     tokenizer = GPT2TokenizerFast.from_pretrained(pretrained_weights)
     model = GPT2LMHeadModel.from_pretrained(pretrained_weights)
     program_dictionary = dict() # to store fully generated programs
-    # program_ditionary[program] = rollout_reward
     
-    # TODO(annhe)
     # convert the prompt to tokens
     prompt_tokens = tokenizer.encode(prompt)
     prompt_tokens = torch.Tensor(prompt_tokens)
     prompt_tokens = prompt_tokens.type(torch.LongTensor)
     root_node = Node(current_token=prompt_tokens,string=prompt)
 
-   
-
-
     for rollout_i in range(max_rollouts):
-        print("rollout_i: ", rollout_i)
+        # print("rollout_i: ", rollout_i)
         node_dictionary = dict()
         node_to_expand, path_nodes, counter, path_strings = select(root_node, node_dictionary)
         beams_list = expand(node_to_expand, tokenizer, model, k, max_beam_len)
@@ -286,20 +266,20 @@ def main_algorithm(prompt, max_rollouts, k, max_beam_len) -> str:
         counter += 1
         new_node_name = top_action + '_' + str(counter)
         new_node = Node(current_token=top_action_token,string=top_action)
-        print("top action string: ", top_action)
-        print("top action token: ", top_action_token)
+        # print("top action string: ", top_action)
+        # print("top action token: ", top_action_token)
         # add the best action to path_nodes
         path_nodes.append(new_node_name)
         path_strings.append(top_action)
         node_dictionary[new_node_name] = new_node
-        # you need to add the child node to the previous node
+        # add the child node to the previous node
         node_to_expand.P_s_a[top_action] = top_action_proba
         node_to_expand.children.append(new_node)
-        print("path_nodes: ", path_nodes)
-        print("path_strings: ", path_strings)
-        print("node_dictionary keys: ", node_dictionary.keys())
+        # print("path_nodes: ", path_nodes)
+        # print("path_strings: ", path_strings)
+        # print("node_dictionary keys: ", node_dictionary.keys())
         backpropagate_statistics(path_nodes, path_strings, max_rollout_reward,  c_base, c, node_dictionary) #todo
-        print("\n\n")
+        #print("\n\n")
 
     v = list(program_dictionary.values())
     k = list(program_dictionary.keys())
