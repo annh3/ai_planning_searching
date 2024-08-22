@@ -171,7 +171,7 @@ class testMCTSUtils(unittest.TestCase):
     def test_evaluate_full_paths(self):
         seq_len = 2
         beam_list = [(torch.Tensor([0.1]),torch.Tensor([0.5]), [torch.Tensor([4]),torch.Tensor([6])] ,['hello', 'world']), (torch.Tensor([0.1]), torch.Tensor([0.7]), [torch.Tensor([4]),torch.Tensor([11])] ,['hello', 'moon'])]
-        max_rollout_reward, top_action, top_program, top_proba = evaluate_full_paths(beam_list)
+        max_rollout_reward, top_action, top_program, top_proba, top_action_token = evaluate_full_paths(beam_list)
         self.assertIsInstance(top_action, str)
         # TODO(annhe): add more tests
         
