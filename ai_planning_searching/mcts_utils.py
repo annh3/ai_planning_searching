@@ -69,7 +69,6 @@ def select(root:Node, node_dictionary: dict[str, Node]) -> tuple[Node, list[str]
     mcts_tree_root = root # save this
     path_nodes = []
     path_strings = []
-    print("root.string: ", root.string)
     root_node_name = root.string + '_' + str(counter)
     path_nodes.append(root_node_name) # name of the current node
     node_dictionary[root_node_name] = mcts_tree_root
@@ -206,7 +205,11 @@ def evaluate_full_paths(beam_list):
     res = sorted(beam_list,key=lambda x: x[1], reverse=True)[0]
     # returns score as a torch.Tensor float, the first string representing
     # the next action from MCTS search, and the program as a list of torch.Tensor tokens
-    return res[1], res[3][1], res[2], res[0]
+    # pdb.set_trace()
+    # max_rollout_reward, top_action, top_program, top_action_proba, top_action_token
+    # beam_list = [(t,a,[b],[c]) for t,a,b,c in zip(transition_scores, sequence_scores, next_tokens, str_repr)]
+    # (current_path[0],score,current_path[2]+[next_token],current_path[3]+[string])
+    return res[1], res[3][0], res[2], res[0], res[2][0]
 
 
 # v_n is the newest node, we need to skip q_a as v_n does not have a child node
@@ -277,16 +280,14 @@ def main_algorithm(prompt, max_rollouts, k, max_beam_len) -> str:
         node_dictionary = dict()
         node_to_expand, path_nodes, counter, path_strings = select(root_node, node_dictionary)
         beams_list = expand(node_to_expand, tokenizer, model, k, max_beam_len)
-        max_rollout_reward, top_action, top_program, top_action_proba = evaluate_full_paths(beams_list)
+        max_rollout_reward, top_action, top_program, top_action_proba, top_action_token = evaluate_full_paths(beams_list)
         top_program_tensor = torch.cat(top_program)
         program_dictionary[top_program_tensor] = max_rollout_reward
         counter += 1
         new_node_name = top_action + '_' + str(counter)
-        # current_token is top_action encoded
-        action_token = tokenizer.encode(top_action)
-        action_token = torch.Tensor(action_token)
-        action_token = prompt_tokens.type(torch.LongTensor)
-        new_node = Node(current_token=action_token,string=top_action)
+        new_node = Node(current_token=top_action_token,string=top_action)
+        print("top action string: ", top_action)
+        print("top action token: ", top_action_token)
         # add the best action to path_nodes
         path_nodes.append(new_node_name)
         path_strings.append(top_action)

@@ -1,7 +1,7 @@
 """
 python -m unittest mcts_utils_tests.py
 
-python -m unittest mcts_utils_tests.testMCTSUtils.test_backpropagate_statistics
+python -m unittest mcts_utils_tests.testMCTSUtils.test_main_algorithm
 """
 import pdb
 import numpy as np
@@ -212,7 +212,7 @@ class testMCTSUtils(unittest.TestCase):
 
 
     def test_main_algorithm(self):
-        prompt = "Hello"
+        prompt = "Hello my name is: "
         max_rollouts = 3
         k = 3
         max_beam_len = 2
@@ -224,9 +224,13 @@ class testMCTSUtils(unittest.TestCase):
         queue = []
         queue.append(root_node)
         visited.add(root_node)
+        counter = 0
         while queue:
             cur = queue.pop(0)
-            self.assertEqual(cur.current_token.shape,torch.Size([1]))
+            print("string: ", cur.string)
+            if counter > 0:
+                self.assertEqual(cur.current_token.shape,torch.Size([1]))
+            counter += 1
             for child in cur.children:
                 if child not in visited:
                     visited.add(child)
