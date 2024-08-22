@@ -212,12 +212,25 @@ class testMCTSUtils(unittest.TestCase):
 
 
     def test_main_algorithm(self):
-        prompt = "Hello my name is: "
+        prompt = "Hello"
         max_rollouts = 3
         k = 3
         max_beam_len = 2
         # a simple test, check the return type
-        program = main_algorithm(prompt, max_rollouts, k, max_beam_len)
+        program, root_node = main_algorithm(prompt, max_rollouts, k, max_beam_len)
         self.assertIsInstance(program[0], torch.Tensor)
+        # traverse the tree and assert that current_token is a single token
+        visited = set()
+        queue = []
+        queue.append(root_node)
+        visited.add(root_node)
+        while queue:
+            cur = queue.pop(0)
+            self.assertEqual(cur.current_token.shape,torch.Size([1]))
+            for child in cur.children:
+                if child not in visited:
+                    visited.add(child)
+                    queue.append(child)
+
 
 

@@ -302,7 +302,7 @@ def main_algorithm(prompt, max_rollouts, k, max_beam_len) -> str:
 
     v = list(program_dictionary.values())
     k = list(program_dictionary.keys())
-    return k[v.index(max(v))] # return the program with the max rollout reward
+    return k[v.index(max(v))], root_node # return the program with the max rollout reward, and the mcts root
 
 
 
