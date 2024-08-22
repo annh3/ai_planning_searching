@@ -1,7 +1,7 @@
 """
 python -m unittest mcts_utils_tests.py
 
-python -m unittest mcts_utils_tests.testMCTSUtils.test_main_algorithm
+python -m unittest mcts_utils_tests.testMCTSUtils.test_backpropagate_statistics
 """
 import pdb
 import numpy as np
@@ -46,7 +46,6 @@ class testMCTSUtils(unittest.TestCase):
     ####
 
     def create_mock_tree_2(self):
-        # lets just instantiate all nodes with the uniform distribution for now
         beam_width = 5
         node_dictionary = dict()
 
@@ -56,23 +55,20 @@ class testMCTSUtils(unittest.TestCase):
         node_0.current_token = node_0.current_token.type(torch.LongTensor)
         node_0.P_UCB_s_a['1'] = 0
         node_0.P_UCB_s_a['3'] = 0
-        node_0.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_0.P_s_a = node_0.P_s_a / beam_width
+        node_0.P_s_a['1'] = torch.Tensor([0.1])
+        node_0.P_s_a['3'] = torch.Tensor([0.1])
         node_dictionary['0'] = node_0
 
         node_1 = Node(current_token=torch.Tensor([1]), string='1')
         node_1.current_token = node_1.current_token.unsqueeze(0)
         node_1.current_token = node_1.current_token.type(torch.LongTensor)
         node_1.P_UCB_s_a['2'] = 0
-        node_1.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_1.P_s_a = node_1.P_s_a / beam_width
+        node_1.P_s_a['2'] = torch.Tensor([0.1])
         node_dictionary['1'] = node_1
 
         node_2 = Node(current_token=torch.Tensor([2]), string='2')
         node_2.current_token = node_2.current_token.unsqueeze(0)
         node_2.current_token = node_2.current_token.type(torch.LongTensor)
-        node_2.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_2.P_s_a = node_2.P_s_a / beam_width
         node_dictionary['2'] = node_2
 
 
@@ -80,15 +76,12 @@ class testMCTSUtils(unittest.TestCase):
         node_3.current_token = node_3.current_token.unsqueeze(0)
         node_3.current_token = node_3.current_token.type(torch.LongTensor)
         node_3.P_UCB_s_a['4'] = 5
-        node_3.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_3.P_s_a = node_3.P_s_a / beam_width
+        node_3.P_s_a['4'] = torch.Tensor([0.1])
         node_dictionary['3'] = node_3
 
         node_4 = Node(current_token=torch.Tensor([4]), string='4')
         node_4.current_token = node_4.current_token.unsqueeze(0)
         node_4.current_token = node_4.current_token.type(torch.LongTensor)
-        node_4.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_4.P_s_a = node_4.P_s_a / beam_width
         node_dictionary['4'] = node_4
 
         node_0.children = [node_1, node_3]
@@ -153,7 +146,7 @@ class testMCTSUtils(unittest.TestCase):
         # Note here that node [4] should be selected
         node_dictionary = self.create_mock_tree_2()
 
-        node_to_expand, path_nodes, counter, path_strings = select(self.mcts_root_node)
+        node_to_expand, path_nodes, counter, path_strings = select(self.mcts_root_node, {})
         self.assertEqual(node_to_expand.string, '4')
         self.assertEqual(counter, 2)
         self.assertEqual(path_nodes, ['0_0', '3_1', '4_2'])
@@ -177,8 +170,8 @@ class testMCTSUtils(unittest.TestCase):
 
     def test_evaluate_full_paths(self):
         seq_len = 2
-        beam_list = [(torch.Tensor([0.5]), [torch.Tensor([4]),torch.Tensor([6])] ,['hello', 'world']), (torch.Tensor([0.7]), [torch.Tensor([4]),torch.Tensor([11])] ,['hello', 'moon'])]
-        max_rollout_reward, top_action, top_program = evaluate_full_paths(beam_list)
+        beam_list = [(torch.Tensor([0.1]),torch.Tensor([0.5]), [torch.Tensor([4]),torch.Tensor([6])] ,['hello', 'world']), (torch.Tensor([0.1]), torch.Tensor([0.7]), [torch.Tensor([4]),torch.Tensor([11])] ,['hello', 'moon'])]
+        max_rollout_reward, top_action, top_program, top_proba = evaluate_full_paths(beam_list)
         self.assertIsInstance(top_action, str)
         # TODO(annhe): add more tests
         
@@ -193,42 +186,7 @@ class testMCTSUtils(unittest.TestCase):
 
         #### Testing this instead ####
         beam_width = 5
-        node_dictionary = dict()
-
-
-        node_0 = Node(current_token=torch.Tensor([0]), string='0')
-        node_0.P_UCB_s_a['1'] = 0
-        node_0.P_UCB_s_a['3'] = 0
-        node_0.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_0.P_s_a = node_0.P_s_a / beam_width
-        node_dictionary['0'] = node_0
-
-        node_1 = Node(current_token=torch.Tensor([1]), string='1')
-        node_1.P_UCB_s_a['2'] = 0
-        node_1.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_1.P_s_a = node_1.P_s_a / beam_width
-        node_dictionary['1'] = node_1
-
-        node_2 = Node(current_token=torch.Tensor([2]), string='2')
-        node_2.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_2.P_s_a = node_2.P_s_a / beam_width
-        node_dictionary['2'] = node_2
-
-
-        node_3 = Node(current_token=torch.Tensor([3]), string='3')
-        node_3.P_UCB_s_a['4'] = 5
-        node_3.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_3.P_s_a = node_3.P_s_a / beam_width
-        node_dictionary['3'] = node_3
-
-        node_4 = Node(current_token=torch.Tensor([4]), string='4')
-        node_4.P_s_a = torch.ones((beam_width,),dtype=torch.float)
-        node_4.P_s_a = node_4.P_s_a / beam_width
-        node_dictionary['4'] = node_4
-
-        node_0.children = [node_1, node_3]
-        node_1.children = [node_2]
-        node_3.children = [node_4]
+        node_dictionary = self.create_mock_tree_2()
 
 
         ##############################
