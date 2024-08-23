@@ -10,6 +10,7 @@ import json
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 
+
 class Node:
     current_token: torch.Tensor
     string: str # string representation of current token
