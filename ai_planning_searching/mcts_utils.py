@@ -203,6 +203,23 @@ def evaluate_full_paths(beam_list):
     return res[1], res[3][0], res[2], res[0], res[2][0]
 
 
+def evaluate_full_paths_with_reward_fn(beam_list, reward_function): 
+    # returns full decoded path and its score
+    # consider using a different reward model
+    # suggested in https://openreview.net/pdf?id=Lr8cOOtYbfL to use max(score)
+
+    """
+    Args:
+        beams_list: list of candidate beams
+
+    Returns:
+        max_rollout_reward: the reward from the full sequence
+        top_action: top next action as a string, i.e. v_n.str, the first string in the list
+        top_program: the entire sequence representing the full program
+    """
+    pass
+
+
 # v_n is the newest node, we need to skip q_a as v_n does not have a child node
 def backpropagate_statistics(path_nodes, path_strings, max_rollout_reward, c_base, c, node_dictionary):
     # 1. add 1 to all state visit counts
