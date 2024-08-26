@@ -55,7 +55,6 @@ def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs):
 
 	for question, _, unit_test_questions, unit_test_solutions in problem_unit_tests:
 		for x,y in zip(unit_test_questions, unit_test_solutions):
-			# generate an f-string for execution
 			fn_output = exec(candidate_program)
 			if y == fn_output:
 				tests_passed += 1
