@@ -38,6 +38,7 @@ def problem_unit_tests(ds):
 	return ((example["question"], example["solutions"], json.loads(example["input_output"])["inputs"], json.loads(example["input_output"])["outputs"]) for example in ds)
 
 
+
 def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs, model, tokenizer):
 	"""
 	Args:
@@ -52,12 +53,25 @@ def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs, model
 	tests_passed = 0
 	total_tests = 0
 
+	reward_call = f"""
+	lm.generate(
+    {tokens}['input_ids'],
+    max_new_tokens=1,
+    output_logits=True,
+    output_scores=True,
+    early_stopping=True)
+	"""
+
 	for question, _, unit_test_questions, unit_test_solutions in problem_unit_tests:
 		for x,y in zip(unit_test_questions, unit_test_solutions):
 			# generate an f-string for execution
-			# can we exec('exec(fn)')?
-			pass
-
+			tokens = x
+			fn_output = exec(reward_call)
+			if y == fn_output:
+				tests_passed += 1
+			total_tests += 1
+	return float(tests_passed) / total_tests
+			
 
 
 def load_apps(split: str):
