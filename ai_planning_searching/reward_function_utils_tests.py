@@ -80,8 +80,7 @@ class testMCTSUtils(unittest.TestCase):
     def test_exec_program(self):
         x = 5
         # assume program is the return of the lm_call
-        program = """
-        def exponentiate(x):
+        program = """def exponentiate(x):
             return x**2""" 
         res = exec(program)
         self.assertEqual(res, 25)
@@ -90,8 +89,7 @@ class testMCTSUtils(unittest.TestCase):
     def test_run_apps_evals(self):
         ds_iterator = pretend_dataset_list()
         data = problem_unit_tests(ds_iterator)
-        program = """
-        def exponentiate(x):
+        program = """def exponentiate(x):
             return x**2""" 
         pass_rate = run_apps_evals(program, data)
         self.assertIsInstance(pass_rate, float)
