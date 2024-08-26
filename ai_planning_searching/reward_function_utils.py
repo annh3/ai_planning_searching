@@ -34,7 +34,7 @@ def problem_unit_tests(ds):
 
 	Returns question, solution, unit_test_questions, unit_test_sols
 	"""
-	return (example["question"], example["solution"], json.loads(example["input_output"])["inputs"], json.loads(example["input_output"])["outputs"]for example in ds)
+	return ((example["question"], example["solutions"], json.loads(example["input_output"])["inputs"], json.loads(example["input_output"])["outputs"]) for example in ds)
 
 
 def load_apps(split: str):
