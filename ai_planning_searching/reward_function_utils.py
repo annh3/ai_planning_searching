@@ -24,13 +24,19 @@ Metrics
 	* Average number of test cases passed
 
 """
+from datasets import load_dataset
+import json
 
 
-def load_apps(path:str, difficulty_level:str):
+def problem_unit_tests(ds):
 	"""
-	Returns a pandas data frame with columns including
-	'prompt' for the natural language and a column 'unit_test'
-	for some delimiter separated string of the unit tests for that 
-	coding question
+	Wraps around dataset
+
+	Returns question, solution, unit_test_questions, unit_test_sols
 	"""
-	pass
+	return (example["question"], example["solution"], json.loads(example["input_output"])["inputs"], json.loads(example["input_output"])["outputs"]for example in ds)
+
+
+def load_apps(split: str):
+	ds = load_dataset("codeparrot/apps", split=split)
+	return ds
