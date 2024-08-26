@@ -39,7 +39,7 @@ def problem_unit_tests(ds):
 
 
 
-def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs):
+def run_apps_evals(candidate_program, data):
 	"""
 	Args:
 		candidate_program: python program in the form of a string
@@ -53,7 +53,7 @@ def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs):
 	tests_passed = 0
 	total_tests = 0
 
-	for question, _, unit_test_questions, unit_test_solutions in problem_unit_tests:
+	for question, _, unit_test_questions, unit_test_solutions in data:
 		for x,y in zip(unit_test_questions, unit_test_solutions):
 			fn_output = exec(candidate_program)
 			if y == fn_output:
