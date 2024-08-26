@@ -21,11 +21,12 @@ Test Case Quality
 	only have two test cases
 
 Metrics
-	* Average number of test cases passed
+	* pass_rate: Average number of test cases passed
 
 """
 from datasets import load_dataset
 import json
+from transformers import GPT2LMHeadModel, GPT2TokenizerFast # TODO(annhe): is there a generic form of this?
 
 
 def problem_unit_tests(ds):
@@ -37,6 +38,39 @@ def problem_unit_tests(ds):
 	return ((example["question"], example["solutions"], json.loads(example["input_output"])["inputs"], json.loads(example["input_output"])["outputs"]) for example in ds)
 
 
+def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs, model, tokenizer):
+	"""
+	Args:
+		candidate_program: python program in the form of a string
+		unit_test_inputs: list[str] of inputs
+		unit_test_outputs: list[str] of outputs
+
+
+	Returns:
+		pass_rate: Average number of test cases passed
+	"""
+	tests_passed = 0
+	total_tests = 0
+
+	for question, _, unit_test_questions, unit_test_solutions in problem_unit_tests:
+		for x,y in zip(unit_test_questions, unit_test_solutions):
+			# generate an f-string for execution
+			# can we exec('exec(fn)')?
+			pass
+
+
+
 def load_apps(split: str):
 	ds = load_dataset("codeparrot/apps", split=split)
 	return ds
+
+
+
+
+
+
+
+
+
+
+
