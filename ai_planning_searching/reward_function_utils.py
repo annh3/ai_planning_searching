@@ -39,7 +39,7 @@ def problem_unit_tests(ds):
 
 
 
-def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs, model, tokenizer):
+def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs):
 	"""
 	Args:
 		candidate_program: python program in the form of a string
@@ -53,20 +53,10 @@ def run_apps_evals(candidate_program, unit_test_inputs, unit_test_outputs, model
 	tests_passed = 0
 	total_tests = 0
 
-	reward_call = f"""
-	lm.generate(
-    {tokens}['input_ids'],
-    max_new_tokens=1,
-    output_logits=True,
-    output_scores=True,
-    early_stopping=True)
-	"""
-
 	for question, _, unit_test_questions, unit_test_solutions in problem_unit_tests:
 		for x,y in zip(unit_test_questions, unit_test_solutions):
 			# generate an f-string for execution
-			tokens = x
-			fn_output = exec(reward_call)
+			fn_output = exec(candidate_program)
 			if y == fn_output:
 				tests_passed += 1
 			total_tests += 1
