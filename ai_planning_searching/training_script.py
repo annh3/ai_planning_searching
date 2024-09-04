@@ -1,14 +1,25 @@
+"""
+Note: to train on GPU, you can call to('cuda') on the model
+and inputs as usual
+"""
+
 import numpy as np
 import torch
 from torch.nn import functional as F
 import transformers
 import pdb
+from datasets import load_dataset
 from transformers import get_linear_schedule_with_warmup, AdamW, GPT2LMHeadModel, GPT2TokenizerFast
 
+
+def get_dataset():
+    train_dataset = load_dataset("rotten_tomatoes", split="train")
+    eval_dataset = load_dataset("rotten_tomatoes", split="validation")
 
 
 pretrained_weights = 'gpt2'
 model = GPT2LMHeadModel.from_pretrained(pretrained_weights)
+model = GPT2TokenizerFast.from_pretrained(pretrained_weights)
 # models are usually loaded in eval() mode, so set this to train()
 model.train()
 # initialize the optimizer
@@ -46,13 +57,13 @@ For now, we assume the output of the sampling loop is just
 the next token, not the next t tokens.
 """
 
-def sampling_loop(model, input_ids, attention_mask):
-	pass
+"""
+in model.generate you need to set return_dict_in_generate=False
+to return torch.LongTensor
+"""
+def sampling_loop(model, input_ids, attention_mask, num_decode_steps=10):
+    output = model.generate(input_ids, attention_mask=attention_mask, max_new_tokens=num_decode_steps)
 
-"""
-Note: to train on GPU, you can call to('cuda') on the model
-and inputs as usual
-"""
 
 outputs = sampling_loop(model, input_ids, attention_mask)
 
@@ -81,4 +92,27 @@ Try using the hugging face Trainer()
 
 https://huggingface.co/transformers/v3.3.1/training.html#pytorch
 """
+
+# get train and eval datasets
+train_dataset, eval_dataset = get_dataset()
+
+training_args = TrainingArguments(
+    output_dir='./results',          # output directory
+    num_train_epochs=3,              # total # of training epochs
+    per_device_train_batch_size=16,  # batch size per device during training
+    per_device_eval_batch_size=64,   # batch size for evaluation
+    warmup_steps=500,                # number of warmup steps for learning rate scheduler
+    weight_decay=0.01,               # strength of weight decay
+    logging_dir='./logs',            # directory for storing logs
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    tokenizer=tokenizer,
+)
+
+trainer = Trainer(
+    model=model,                         # the instantiated Transformers model to be trained
+    args=training_args,                  # training arguments, defined above
+    train_dataset=train_dataset,         # training dataset
+    eval_dataset=test_dataset            # evaluation dataset
+)
 
