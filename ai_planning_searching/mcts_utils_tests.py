@@ -2,6 +2,8 @@
 python -m unittest mcts_utils_tests.py
 
 python -m unittest mcts_utils_tests.testMCTSUtils.test_main_algorithm
+
+python -m unittest mcts_utils_tests.testMCTSUtils.test_expand
 """
 import pdb
 import numpy as np

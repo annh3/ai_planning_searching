@@ -1,15 +1,9 @@
 """
 TODO(annhe): 
 
-PAUSE on the design of these utils as we have not yet decided
-whether to try finetuning on the APPS dataset at all.
-
-If we decide to finetune on the APPS dataset we will need to match
-the formatting of that dataset.
-
-O.W., can try to curate our own dataset.
-
-
+OK, we will finetune on the APPS dataset.
+So this file will need to match the formatting of example solutions
+on the APPS dataset.
 
 This file loads the APPS dataset.
 

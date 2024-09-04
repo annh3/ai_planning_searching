@@ -44,7 +44,7 @@ Note that this is where you fetch the attention_mask.
 
 tokenizer = GPT2TokenizerFast.from_pretrained(pretrained_weights)
 
-text_batch = ["I am reading Anna Karenina", "I am also reading Hackers and Painters"]
+text_batch = ["I am reading A Responsibility to Awe", "I am also reading Hackers and Painters"]
 
 encoding = tokenizer(text_batch, return_tensors='pt', padding=True, truncation=True)
 input_ids = encoding['input_ids']

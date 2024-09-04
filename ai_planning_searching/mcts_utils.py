@@ -203,7 +203,7 @@ def evaluate_full_paths(beam_list):
     return res[1], res[3][0], res[2], res[0], res[2][0]
 
 
-def evaluate_full_paths_with_reward_fn(beam_list, reward_function): 
+def evaluate_full_paths_with_reward_fn(beam_list, reward_function, model, tokenizer): 
     # returns full decoded path and its score
     # consider using a different reward model
     # suggested in https://openreview.net/pdf?id=Lr8cOOtYbfL to use max(score)
@@ -211,6 +211,7 @@ def evaluate_full_paths_with_reward_fn(beam_list, reward_function):
     """
     Args:
         beams_list: list of candidate beams
+        reward_function
 
     Returns:
         max_rollout_reward: the reward from the full sequence
