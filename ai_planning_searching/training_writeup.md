@@ -27,5 +27,5 @@ I also downsampled the the dataset since I'm training on CPU, and also since thi
 
 I used basically the default settings which I copied from a Hugging Face tutorial on how to use the Hugging Face Trainer module. I guess the hyper-parameter I was mostly interested in this time around was the learning rate. I'm not sure why, I guess it's because I'm starting to get more interested in the dynamics of deep learning optimization. 
 
-The default learning rate scheduler in the Hugging Face Trainer module is 
+The default learning rate scheduler in the Hugging Face Trainer module changes at a linear rate. You can observe the effect of this on the evaluation loss, which shows an accelerating decay.
 
