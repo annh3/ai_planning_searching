@@ -29,3 +29,10 @@ I used basically the default settings which I copied from a Hugging Face tutoria
 
 The default learning rate scheduler in the Hugging Face Trainer module changes at a linear rate. You can observe the effect of this on the evaluation loss, which shows an accelerating decay.
 
+<img width="106" alt="Screenshot 2024-09-10 at 11 41 34 AM" src="https://github.com/user-attachments/assets/795614e5-6e39-461e-b07d-e00f3da3feab">
+
+<img width="645" alt="Screenshot 2024-09-10 at 11 41 17 AM" src="https://github.com/user-attachments/assets/9be7d155-686d-4c8d-866b-6e724a73e021">
+
+If I were to actually do this in practice, 
+
+
