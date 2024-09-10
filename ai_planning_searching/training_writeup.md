@@ -6,6 +6,12 @@ I found out that, actually, writing a training loop for large language model tra
 
 Since the intent of this exploration was to have a proof of concept of how to set up training for finetuning on the APPs dataset, all that mattered for the proof of concept dataset is that we chose a text dataset and trained it in an auto-regressive manner.
 
+I chose the Taylor Swift dataset. Here's an example data point.
+
+<img width="747" alt="Screenshot 2024-09-10 at 11 03 16 AM" src="https://github.com/user-attachments/assets/6adbd937-59c8-4d50-a280-ef765190223c">
+
+
+
 What does this mean?
 
 This means that the input to the LLM $f(x)$ is a string and the output, or target, y, of the LLM is the string shifted to the right by one index.
