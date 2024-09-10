@@ -8,4 +8,11 @@ Since the intent of this exploration was to have a proof of concept of how to se
 
 What does this mean?
 
-This means that the input to 
+This means that the input to the LLM $f(x)$ is a string and the output, or target, y, of the LLM is the string shifted to the right by one index.
+
+To accomodate this, I wrote a preprocessing function which does exactly that.
+
+
+<img width="830" alt="Screenshot 2024-09-10 at 11 01 19 AM" src="https://github.com/user-attachments/assets/f7496f5e-01af-41ba-9d5d-b035b798fa2a">
+
+
