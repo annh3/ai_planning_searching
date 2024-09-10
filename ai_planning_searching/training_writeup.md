@@ -37,3 +37,5 @@ If I were to actually do this in practice, I would first sweep over constant lea
 
 
 You can see the full training notebook [here](https://github.com/annh3/ai_planning_searching/blob/main/ai_planning_searching/training_script.ipynb) and even copy it! As long as you give me credit :)
+
+Thank you to Xiao-Hu Yan for witnessing this :)
