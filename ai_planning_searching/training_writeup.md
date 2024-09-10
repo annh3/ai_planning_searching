@@ -21,4 +21,11 @@ To accomodate this, I wrote a preprocessing function which does exactly that.
 
 <img width="830" alt="Screenshot 2024-09-10 at 11 01 19 AM" src="https://github.com/user-attachments/assets/f7496f5e-01af-41ba-9d5d-b035b798fa2a">
 
+I also downsampled the the dataset since I'm training on CPU, and also since this is a proof of concept.
+
+<img width="257" alt="Screenshot 2024-09-10 at 11 13 35 AM" src="https://github.com/user-attachments/assets/c4dd83ba-93c9-40b5-838f-98b2b33467c9">
+
+I used basically the default settings which I copied from a Hugging Face tutorial on how to use the Hugging Face Trainer module. I guess the hyper-parameter I was mostly interested in this time around was the learning rate. I'm not sure why, I guess it's because I'm starting to get more interested in the dynamics of deep learning optimization. 
+
+The default learning rate scheduler in the Hugging Face Trainer module is 
 
